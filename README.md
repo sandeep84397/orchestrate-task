@@ -79,9 +79,7 @@ The workflow does not deploy changes, publish artifacts, or expand external perm
 
 ## Validation status
 
-The skill passed the bundled skill format validator, metadata checks, and reference-link checks. Seven simulated scenarios covered failed integration, uncertain task creation, child questions, overlapping changes and authorization, archived-task reuse, unavailable task controls, and manual archival of a running task.
-
-**A live end-to-end feature run has not yet been validated.** Simulation verifies instruction behavior, not the reliability of every host's task APIs.
+Twelve synthetic recovery scenarios cover requester acceptance in both directions, partial replies, superseded work, delivery and creation uncertainty, unknown writers, redundant ownership, external waits, fresh-context recovery, and integration gates. A live native lifecycle smoke on one host also covered task creation/follow-up, integration, scheduler pause/resume/cleanup, and archive. These checks do not establish reliability across all Codex hosts.
 
 ## Files
 
