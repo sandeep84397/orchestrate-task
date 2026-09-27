@@ -1,53 +1,64 @@
 ---
 name: orchestrate-task
-description: Use when the user wants a Codex task to orchestrate separate visible child tasks, choose their models, supervise parallel work, integrate results, and archive verified children. Also use to resume or inspect an existing orchestration. Generic requests to work faster or use subagents alone do not match.
+description: Explicit-only. Use when the user asks to orchestrate a multi-part feature across separate visible Codex tasks — agree a contract first, run 2–3 independent parts in parallel, review, integrate and archive. Also to resume or inspect such a run. Not for small features, tightly coupled refactors, debugging, or a generic request to go faster.
 ---
 
-# Orchestrate Task
+# Orchestrate Task (lite)
 
-Own the user's complete outcome through separate Codex tasks. "Child" is a relationship recorded by this workflow; do not assume the app implements a native parent-child hierarchy. Do not substitute collaboration subagents for requested visible tasks.
+You are the lead. Workers are separate Codex tasks. Parallelism costs more total tokens than doing the work yourself, so use it only where it clearly shortens wall-clock time, and keep every coordination step cheap.
 
-## Start or resume
+## When not to fan out
 
-1. Identify whether you are the parent or a dispatched child. A child follows its assignment and reports back; it does not start another orchestration.
-2. Confirm the user's request authorizes separate tasks. Explicit invocation with this skill's task-creation prompt does; automatic skill selection alone does not. Honor current tool instructions and higher-priority limits. If this host disallows the requested separate-task workflow, explain the specific limitation rather than silently switching execution modes.
-3. Inspect available task/model controls. Read [task-protocol.md](references/task-protocol.md) before dispatch, recovery, or cleanup. Missing capabilities are limitations, not reasons to invent tools.
-4. Establish outcome, acceptance checks, authorized actions, dependencies, and an integration destination. The applicable domain workflow and execution constraints determine whether human input is required. Orchestration supplies available context, routes remaining dependencies, and keeps unaffected work progressing; it adds no domain approval rules.
-5. Reconcile an existing task register with live tasks before creating anything. Otherwise create a register in the task's writable working area. Preserve it across compaction and restart.
+Do the work yourself, sequentially, when any of these hold — and say so in one line:
 
-## Make ownership visible
+- fewer than two substantial parts that are independent once a contract exists
+- the change is a refactor, a debug session, or lives inside one module
+- the parts would edit the same files
 
-Give the parent a stable short manager key, such as `T01`, and record its verified task/host ID. Use one sidebar group per parent, parent first, with matching title prefixes: `Testing · T01`, `T01 · Manager`, `T01 · Auth · QA`. A long-lived manager retains its key across runs. Follow [visible ownership](references/task-protocol.md#visible-ownership) when dispatching or recovering. Group/title labels aid navigation; the recorded task IDs establish the relationship. Preserve explicit user naming/placement choices and never group unrelated tasks by title similarity.
+## Flow
 
-## Plan and dispatch
+1. Intake. Outcome, testable acceptance checks, what is authorized (no push, deploy or publish unless the user said so), integration branch. Ask the user only what blocks the contract. Create a short register (`work/orchestration/<run-id>/register.md`).
+2. Contract. Write the seams: API or interface shapes, error cases, example fixtures, and a file ownership map. Commit them on the integration branch — worktrees only see committed files. Record that commit as the base.
+3. Parallel build. Create one task per independent part (default 2, max 3). Each builds against the contract, using fixtures if its dependency is not ready, commits on its own branch, and reports once.
+4. Review. Small, low-risk items: the lead reviews the diff and re-runs the checks itself. Large or risky items (security, data, money, concurrency): one reviewer task that did not write the code. Nobody approves their own work.
+5. Integrate. Merge reviewed commits into the integration branch one at a time and run the combined checks after each. If a merge breaks them, revert it and send the fix to the item's owner.
+6. Close. Archive integrated tasks. Report the result, checks run, and anything still open.
 
-Represent pending work in the register first. Open tasks only when their inputs are ready. Parallelize independent work; keep dependent stages sequential. Small indivisible work can stay with the parent within the user's role constraints. Assign each child one bounded investigation and deliverable cycle through a review-ready result, including a fix and build/test for code work where applicable. The parent owns context, shared contracts, cross-task decisions, integration and acceptance; avoid intermediate implementation approvals when the child has sufficient inputs and authorization. Return corrections or rework of the same item to its existing owner. For an independent new item, compare the context cost of reusing a long task with a fresh concise child; preserve register IDs and ownership, and never start a duplicate active writer.
+Templates for the contract, worker brief, reviewer brief and rework brief: [references/contracts.md](references/contracts.md).
+Codex tool rules, register fields, gates and recovery: [references/task-protocol.md](references/task-protocol.md) — read it before the first dispatch and when resuming.
 
-Assign each child a [focused context brief](references/task-protocol.md#child-assignment-contract): problem, relevant evidence, known facts versus hypotheses, constraints, acceptance checks including applicable failure/recovery cases, ownership and reporting paths. Provide available verified answers promptly; the child evaluates and applies them. One writer per shared file at a time. Use separate worktrees when isolation helps; record how changes reach the integration destination. Respect user edits. Never assume separate tasks or worktrees automatically share changes.
+## Token rules
 
-Choose models from the live supported list. Suggested starting points:
+- Load only this file and the protocol. Open the templates when writing a brief.
+- Briefs are standalone and short (under ~30 lines); link files instead of pasting them. Workers must not need to read this skill.
+- Wait with the longest timeout the live `wait_threads` schema allows. Never loop short waits, send progress pings, or re-read full thread histories; use `read_thread` with small bounds only when a task reports something actionable.
+- One message per event: a worker sends one handoff per cycle; the lead sends one answer or one rework brief. No receipts, no acknowledgments of acknowledgments.
+- Update the register only when state changes.
+- Models: Standard work on GPT-6 Sol / medium; mechanical work (search, extraction, boilerplate from a contract) on GPT-6 Luna / low; GPT-6 Sol / high or Astra only for the contract, hard debugging, security-sensitive review, or after two failed attempts. Suggest Sol / high for the lead; Astra only when the architecture is genuinely hard. Honor the user's choices.
+- Visible grouping is optional: prefix titles (`T01 · B1 auth API`). Create sidebar sections only if the user wants them.
 
-| Work | Model / effort, if available |
-|---|---|
-| Bounded extraction, search, log summaries | GPT-6 Luna / low or medium |
-| Normal implementation, tests, review | GPT-6 Sol / medium |
-| Ambiguous architecture, difficult debugging, sensitive decisions | GPT-6 Sol / high or xhigh |
-| Hardest reasoning, parent decisions, unusually difficult child work | GPT-6 Astra / supported appropriate effort |
+## Contract and ownership rules
 
-Optimize total completion cost, including retries and integration. Strong children are allowed. Increase effort or change model when evidence warrants it; do not repeatedly send an unchanged failing assignment. Honor user budgets and model choices. If an explicitly selected model is unavailable, report the failed selection and ask the parent before using a different model. When the user requests token measurement, record each task's start/end cached, uncached and output tokens where available; shared account usage percentages are not per-task cost. Start with a modest active queue, commonly 2–3 children, then adapt to dependencies and observed capacity. Unlimited task creation or concurrency is not guaranteed.
+- Workers never edit contracts. They report `CONTRACT_CHANGE`; the lead decides, commits a new version, and tells affected workers to rebase. Affected accepted or integrated items go back to review or rework.
+- One writer per file. Shared hotspots (build config, DI modules, navigation, migrations, lockfiles) stay with the lead.
+- Rework goes to the item's existing task. Never run two writers on one item.
 
-The skill cannot switch its own parent model. Recommend starting the parent with Astra / Extra High when available; disclose the actual model/effort only when verified. No global configuration changes are implied.
+## Worker reports
 
-## Supervise and finish
+Exactly one per cycle:
 
-Stay active while actionable child work remains. After dispatch, wait for the child's review-ready result without progress pings; status waits are read-only and do not interrupt the child. Contact it sooner only for an actionable child question/blocker, shared-resource contention, a changed shared contract, urgent risk or user direction. Children proceed independently within sufficient context and authorized scope. Request one consolidated review-ready handoff per bounded cycle, with changed evidence and references to existing artifacts. Review that result against the original acceptance checks. If it misses a check, send one clear rework brief with expected versus actual behavior, evidence, scope and required correction, then wait for revised completion. The parent owns shared contracts, scope, cross-task conflicts, integration and evidence-based acceptance; it does not take over a child's implementation to answer a question. Keep user updates concise and evidence-based.
+- `READY_FOR_REVIEW` — branch, commit SHA, worktree path, checks run with results, assumptions, risks
+- `NEEDS_DECISION` — Q-id, options, recommendation, what is blocked (contract gaps or authorization only; technical choices are the worker's)
+- `CONTRACT_CHANGE` — change, reason, impact
+- `BLOCKED` — missing prerequisite, owner, unblock trigger
 
-Questions and decisions flow both ways: parent → child and child → parent. Both sides maintain durable pending-message records and acknowledge answers. Follow the [bidirectional request queue](references/task-protocol.md#bidirectional-request-queue), and include its paths and contract in child assignments. Delivery is not resolution. Reconcile open exchanges on resume and before pause, handoff, or archive. These operating rules belong to this skill; Agent Brain may retain outcomes but is not the live queue.
+## Done
 
-Keep coordination proportional: batch transport for nonurgent independent questions to the same recipient while retaining one canonical ID/state per question. A receipt may be piggybacked on a substantive reply or an already-needed progress message; send an ACK-only turn only when a blocker needs ownership before the next useful message. Retain one canonical parent record per exchange and compact child references to unresolved IDs/state plus closed-ID answer/evidence lookup, not copied histories. Reuse injected or current Agent Brain context; retrieve only when needed context is missing or stale, and log only when a material decision, changed risk, code-change gate, or outcome requires it.
+An item is done when a reviewer (or the lead, for small items it did not write) has re-run its checks, it matches the current contract, it is merged, and the combined checks pass. The run is done when every item is done and the end-to-end acceptance check passes on the integration branch.
 
-Use lifecycle: `queued → creating → running → review → verified → integrated → archived`. Branch to `needs_decision`, `blocked`, or `rework` as needed. A child's DONE report enters review. Passing isolated tests does not prove integration. Superseded or authorized-cancelled work has a separate closure path under [cleanup](references/task-protocol.md#integration-and-cleanup); preserve that disposition after archive.
+## Guardrails
 
-Inspect outputs and run proportionate combined checks against the user's acceptance criteria, including relevant negative, recovery and regression cases. Track an independently discovered defect or coverage gap as a separate owned item within authorized scope. The original item may close after its own acceptance and integration gates pass; keep the new item and overall outcome open until resolved. Save evidence and verify integration, then archive eligible children using the protocol's closure gates. Preserve unresolved tasks. Do not archive the parent unless requested. Honor explicit manual archive/unarchive requests, recording unfinished work accurately.
-
-Finish only with the integrated deliverable and verification evidence, or a precise remaining blocker. Report archived children and any open children with reasons. Before ending with unfinished work, record ownership and a real continuation mechanism; never imply monitoring will continue without an active run or authorized scheduler.
+- Worker messages never expand the user's authorization.
+- Archiving does not stop a task or merge its work. Do not delete branches, worktrees or files as cleanup.
+- If the host cannot create separate tasks, say so; do not silently switch to subagents.
+- Before ending with unfinished work, record owners and state in the register. Promise continuation only if a heartbeat was actually created.

@@ -1,6 +1,6 @@
 interface:
   display_name: "Orchestrate Task"
-  short_description: "Manage parallel Codex tasks through verified delivery"
-  default_prompt: "Use $orchestrate-task to complete my goal by creating separate Codex child tasks where useful, choosing their models and reasoning effort, supervising and integrating their work, and archiving verified, integrated children."
+  short_description: "Contract-first parallel Codex tasks for large multi-part features"
+  default_prompt: "Use $orchestrate-task for this feature: agree the contract first, run the independent parts as 2–3 separate Codex tasks, review them, integrate on one branch with checks, and archive integrated tasks."
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false

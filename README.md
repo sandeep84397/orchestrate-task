@@ -1,97 +1,68 @@
-# Orchestrate Task
+# Orchestrate Task (lite)
 
-A Codex skill for managing separate, visible Codex tasks from one parent task: divide independent work, choose models, answer questions, review outputs, integrate changes, and archive completed children.
+A Codex skill for large multi-part features: agree the contract first, run the independent parts as 2–3 separate visible Codex tasks, review them, integrate on one branch with checks, and archive what's integrated.
 
-The parent remains responsible for the final result. Children are ordinary Codex tasks tracked by this workflow, not a claim that Codex provides a native parent-child task hierarchy.
+Parallel work costs more total tokens than sequential work. This skill is for cases where it clearly saves wall-clock time: a backend endpoint plus an Android screen plus tests, or independent modules. For small features, refactors, debugging, or anything inside one module, don't use it — ask Codex to do the work directly.
 
 ## Install
-
-In Codex, ask the built-in skill installer:
 
 ```text
 Use $skill-installer to install the skill from:
 https://github.com/sandeep84397/orchestrate-task/tree/main/skills/orchestrate-task
 ```
 
-It should be available on the next turn after installation. If it does not appear, restart Codex.
+Or copy `skills/orchestrate-task/` (keep `references/` and `agents/`) into `$CODEX_HOME/skills` or `~/.codex/skills`. Restart Codex if it doesn't appear.
 
-For manual installation, copy the entire `skills/orchestrate-task` directory into your Codex personal skills directory, normally `$CODEX_HOME/skills` or `~/.codex/skills`. Preserve `references/` and `agents/`. Inspect an existing installation before replacing it.
+The skill is explicit-only (`allow_implicit_invocation: false`), so it never starts creating tasks unless you invoke it.
 
 ## Use
 
-Choose the parent model and reasoning effort in Codex. Astra with Extra High is the suggested parent configuration when available; the skill cannot change the model of its own parent task.
-
 ```text
-Use $orchestrate-task to complete this feature: [describe the outcome].
-Create separate Codex child tasks where useful. Choose their models and
-reasoning effort, supervise their work, integrate and verify the results,
-and archive children after their outputs are accepted and integrated.
+Use $orchestrate-task to add email/password login. Backend is Ktor,
+app is Android Compose. Agree the API contract first, run backend and
+app as separate tasks, integrate on feat/login, run the end-to-end
+check. Don't push.
 ```
-
-For example:
-
-```text
-Use $orchestrate-task to add a login flow to this project.
-Agree on the API contract first, then create separate Codex tasks for
-independent backend and Android work. Choose suitable models, answer child
-questions, verify the combined login flow, and archive integrated children.
-```
-
-You can also ask the parent to resume an existing orchestration, inspect blockers, or archive/unarchive a specific child. Explicit task creation is required; automatic selection of the skill alone does not authorize opening new tasks.
 
 ## How it works
 
-1. Define the outcome, acceptance checks, dependencies, and integration destination.
-2. Record pending work; open child tasks only when inputs are ready.
-3. Give each child clear ownership, context, checks, and a question/reporting protocol.
-4. Run independent work in parallel within available capacity. Reuse tasks for corrections.
-5. Resolve technical questions in the parent; escalate only decisions or blockers needing the human.
-6. Review actual outputs, integrate them, and run relevant combined checks.
-7. Save handoff evidence and archive verified, integrated children.
+1. Intake: outcome, acceptance checks, what's authorized, integration branch.
+2. Contract: interfaces, error cases, fixtures and file ownership, committed on the integration branch.
+3. Parallel build: 2 tasks by default, max 3, each on its own branch, one report at the end.
+4. Review: the lead reviews small items itself; large or risky items get one independent reviewer task.
+5. Integrate: merge reviewed commits one at a time, run combined checks, revert anything that breaks them.
+6. Close: archive integrated tasks and report with evidence.
 
-Typical lifecycle:
+## Keeping token use down
 
-```text
-queued -> creating -> running -> review -> verified -> integrated -> archived
-                        |           |
-                  needs_decision  rework
+- Long waits instead of short polling; no progress pings or acknowledgments.
+- Short standalone briefs; workers never load the skill.
+- Cheaper models by default (Sol / medium, Luna for mechanical work); stronger models only for the contract, hard debugging, security review, or repeated failures.
+- No fan-out when the work isn't parallel.
+
+## Claude Code
+
+Claude Code doesn't need this skill: background agents, worktrees and completion notifications are built in. Add this to your `CLAUDE.md` instead:
+
+```markdown
+## Parallel work
+For multi-part features with 2–3 independent parts (e.g. backend + Android):
+1. Write the contract first (API shapes, error cases, fixtures, file ownership) and commit it on the integration branch.
+2. Run each part as a background agent with `isolation: "worktree"` (max 3); each commits and reports branch, SHA and test results.
+3. Review each diff and re-run its checks before merging (use a separate reviewer agent for risky code). Merge one at a time, run the full checks after each, revert on failure.
+Otherwise work sequentially — don't fan out small, coupled, or single-module changes.
 ```
-
-An explicit manual archive request can hide unfinished work, but never means the work is complete or that execution stopped. The parent records remaining obligations and keeps write ownership until execution status is known.
-
-## Models and efficiency
-
-The parent selects from the host's supported models and reasoning levels. Starting suggestions: Luna for bounded extraction, Terra for ordinary implementation, Sol for difficult debugging and architecture, and Astra for the hardest reasoning. These are routing suggestions, not fixed requirements or guarantees of access.
-
-Prefer a modest active queue, concise assignments, bounded status checks, and evidence-based escalation. More tasks can reduce elapsed time while increasing total token use. Task count and concurrency are not unlimited.
-
-## Requirements and limits
-
-- A Codex host exposing separate-task creation, follow-up messaging, status/read, and archive controls. Tool availability and permissions take precedence over this skill.
-- A writable location for a small task register and the necessary project/artifact access.
-- Appropriate available models; the skill does not provision model access or modify global configuration.
-- Git projects need explicit ownership and integration between worktrees; changes do not automatically appear in the parent checkout.
-- Active supervision lasts only while the parent is running. Continuing later requires an explicitly requested, successfully configured automation.
-- If the host prohibits separate-task orchestration, the skill reports that limitation instead of substituting subagents.
-- Creating an archive does not stop execution, merge changes, delete worktrees, or grant deployment permission.
-
-The workflow does not deploy changes, publish artifacts, or expand external permissions merely because a child asks. The original user's authorization controls scope.
-
-## Validation status
-
-Twelve synthetic recovery scenarios cover requester acceptance in both directions, partial replies, superseded work, delivery and creation uncertainty, unknown writers, redundant ownership, external waits, fresh-context recovery, and integration gates. A live native lifecycle smoke on one host also covered task creation/follow-up, integration, scheduler pause/resume/cleanup, and archive. These checks do not establish reliability across all Codex hosts.
 
 ## Files
 
-- [SKILL.md](skills/orchestrate-task/SKILL.md): entry point and decision rules.
-- [Task protocol](skills/orchestrate-task/references/task-protocol.md): task identities, assignment contract, recovery, integration, and cleanup.
-- [Codex metadata](skills/orchestrate-task/agents/openai.yaml): display name and invocation prompt.
+- [SKILL.md](skills/orchestrate-task/SKILL.md): flow, token rules, guardrails
+- [references/task-protocol.md](skills/orchestrate-task/references/task-protocol.md): Codex tools, identity, register, gates, recovery
+- [references/contracts.md](skills/orchestrate-task/references/contracts.md): contract, worker, reviewer and rework templates
+- [tests/regression-scenarios.md](skills/orchestrate-task/tests/regression-scenarios.md): replay checklist
 
-## Contributing
+## Validation status
 
-Issues and pull requests welcome. Include your Codex host/version, relevant tool availability, expected behavior, actual behavior, and a minimal reproduction. Redact credentials, private project details, and sensitive task output.
-
-Keep changes focused on observed failures and preserve the distinction between separate tasks and subagents. Do not claim live validation from simulated scenarios.
+The regression scenarios are replay checklists, not automated tests. The lite version hasn't had a recorded live run yet.
 
 ## License
 
