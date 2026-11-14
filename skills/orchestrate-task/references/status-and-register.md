@@ -12,7 +12,7 @@ updated: <ISO time>
 branch: <actual branch> @ <sha>   base: <sha>
 goals (plan v<N>): M<n>.g1 ✓ · M<n>.g2 ▸ · M<n>.g3 · M<n>.g4
 goal: <goal id> <goal title>
-state: not-started | plan-review | red | green | mutation-ok | review | waiting-gate | done
+state: not-started | plan-review | red | green | mutation-ok | review | waiting-gate | paused | done
 prep: none | drafting g<k+1> | done g<k+1> | <PREP task + output path>
 evidence:
 - g1: <evidence dir>/g1-red.txt, g1-green.txt, g1-mutation.txt
@@ -46,6 +46,7 @@ On `UNBLOCK <id>` or `GUIDE <id>` the child moves the block to `resolved:` and c
 # <Run name> register
 run folder: <abs> · skill: <SKILL_DIR abs> · platform: <adapter> · group: <id or prefix> · orchestrator: <title>
 heartbeat: <interval> · last tick <time> · open question: Q<k> | none
+paused: none | <blocker id> since <time> (every child paused until the user decides)
 progress: <done>/<total> goals (<pct>%) · waiting on you: <n> (<M.g list>) · blocked: <n> (<M list>) · shipped: <merged>/<milestones> · integration: pending | pass | fail · plan v<N> (<±delta> goals) · longest left: <M> <n> goals
 
 | M | session (child id) | mode | branch @ sha | base | goal | state | milestone | acted | blocker | lease |

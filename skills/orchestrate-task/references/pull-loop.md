@@ -24,7 +24,9 @@ If the previous tick is still in progress, skip; the next trigger picks it up.
 2. **Flag** a child only when something needs the orchestrator **and** it differs from
    that row's `acted` key (goal + state + block/lease id). Equal = already in hand; skip
    unless its timeout below has passed. Milestones in `goals-complete`, `merge-asked`,
-   `merged`, `closed` are never flagged as idle.
+   `merged`, `closed` are never flagged as idle, and neither is a child in `paused`
+   while REGISTER's `paused:` is set. A new `BLOCKED` is always flagged, even while
+   paused.
    Flags: idle while active · stuck · plan-review requested · review requested ·
    review result ready · BLOCKED · lease requested · gate answer arrived ·
    plan/goal-list mismatch · pending message for an idle child (cli-fallback).
@@ -59,7 +61,7 @@ If the previous tick is still in progress, skip; the next trigger picks it up.
 | review result: passed, goal gated | Message `REVIEW … passed @<sha>`; child sets `waiting-gate`. Queue the gate question at once. |
 | review result: findings | Message `REVIEW … findings`. Third findings round on one goal → the `principal` role decides, still stuck → escalate. |
 | gate answered | Approved → ledger `done`, one message `GATE … approved` + `NEXT` (or `DONE`). Rejected → `GATE … rejected — "<words>"`; the child treats the words as findings and redoes from tests. |
-| `BLOCKED` | Resolve, guide, or escalate (below). |
+| `BLOCKED` | **Blocker protocol** (below): pause every child, show the user the blocker card, act on the user's answer, resume everyone. |
 | lease requested | Grant if free and next in order; else queue. |
 | idle mid-goal | From op `events`: `GUIDE` if it's stuck, else a one-line nudge with the next step. |
 | idle, prep done, waiting | Parked — fine. Move that child's pending question/review to the front. |
@@ -72,27 +74,61 @@ evidence verified, `REVIEW passed` bound to the current head SHA, and the gate a
 in the answers log if gated. If the head moves after a pass (rework, `MERGE-BASE`),
 re-review the delta before confirming.
 
-## Blocked: resolve, guide, or escalate
-Use the whole picture first — PLAN, contracts, other milestones' state and code, the
-answers log, review notes. The user is the last resort.
-1. **Resolve** — contract, lease, cross-milestone, review dispute, frozen-file:
-   decide and send `UNBLOCK`.
-2. **Guide** — technically stuck (test won't pass, unclear approach, design choice in
-   scope): read the code, check what other milestones did, ask the `principal` role or a
-   `review`-role agent if hard. Send `GUIDE` with a concrete approach.
-3. **Escalate** — approval, product decision, access, anything irreversible, or a
-   blocker that survived two `GUIDE`s: queue a question with a recommendation, then
-   relay the answer as `UNBLOCK`, quoting the user.
+## Blocker protocol (pause all, explain, decide, resume)
 
-| class | default path |
+The user wants to know about every blocker and decide it with the whole run stopped,
+so nothing builds on top of a problem while it is open.
+
+**What counts as a blocker:** a `BLOCKED` block in any STATUS; a child that is stuck or
+errored and doesn't recover after one nudge; a goal failing its third review round; a
+`GATE` rejection that changes scope; a failed merge or integration check. Normal waits
+(lease queue, review in progress, gate question pending) are not blockers.
+
+1. **Pause every child**, not only the blocked one: send `PAUSE <blocker id>` to each
+   active milestone. Children finish the command they're running, start nothing new,
+   set `state: paused`, and end their turn. Record `paused: <blocker id> since <time>`
+   in the REGISTER header. Don't start reviews, grant leases or send `NEXT` while paused.
+2. **Investigate** with the whole picture: PLAN, contracts, the blocked child's STATUS
+   and evidence, recent events, other milestones' state and code, the answers log.
+   Ask the `principal` or `review` role if it's hard. Work out real options.
+3. **Show the blocker card** to the user, in the user's language and plain words (no
+   jargon; explain any unavoidable term in a few words). This is the one open question;
+   it goes to the top of `QUESTIONS.md`.
+
+   ```
+   ⛔ Blocker <id> — Milestone M<n> (<name>), goal M<n>.g<k>
+   What happened: <1–3 plain sentences: what the child was doing and what stopped it>
+   Why it matters: <what can't continue; every milestone is paused meanwhile>
+   Options:
+     A. <option> — good: <…> · cost/risk: <…>
+     B. <option> — good: <…> · cost/risk: <…>
+     C. <option, if a real third one exists>
+   I choose: <A> — because <plain reason tied to the run's goal, risk and time>
+   Reply "ok" to go with <A>, or pick another option / tell me what to do.
+   ```
+   Options must be genuinely different (not one option plus straw men). The chosen one
+   is the orchestrator's honest recommendation.
+4. **Act on the answer:** apply the chosen option. Usually that means `UNBLOCK` or
+   `GUIDE` to the blocked child, a contract/PLAN update, a frozen-file edit, or a new
+   goal. Log it in the answers log, quoting the user.
+5. **Resume everyone:** send `RESUME <blocker id>: <one-line outcome>` to every paused
+   child (the blocked one gets its `UNBLOCK`/`GUIDE` in the same message), clear
+   `paused:` in REGISTER, and run a tick.
+
+More blockers while paused: investigate each, queue its card, show them one at a time;
+resume only when none is open.
+
+How the options are usually shaped, by blocker class:
+
+| class | typical options |
 |---|---|
-| contract | Resolve. Frozen contract change: additive only, update PLAN.md, `UNBLOCK` every producer/consumer. Breaking → escalate. |
-| lease | Resolve. |
-| cross-milestone | Resolve. Never tell a child to import another milestone's code; give the contract and a fake. |
-| review | Resolve; architecture dispute → the `principal` role; still stuck → escalate. |
-| frozen-file | Resolve: edit on `<run>-frozen`; shared-base push needs the user's yes; then `MERGE-BASE`. |
-| technical | Guide. |
-| approval / product / access / other | Escalate. |
+| contract | Additive contract change (update PLAN.md, tell every producer/consumer) · move the work into one milestone · fake it and defer. Breaking changes always need the user. |
+| lease | Reorder the lease queue · revoke from the current holder · run the step without the resource (fixture). |
+| cross-milestone | Answer from the other milestone's state · give a contract + fake · re-sequence goals. Never "import the other milestone's code". |
+| review | Fix the findings as stated · the `principal` role settles the architecture dispute · split the goal. |
+| frozen-file | Orchestrator edits the frozen file on `<run>-frozen` (pushing it needs the user's yes) then `MERGE-BASE` · work around it inside owned files. |
+| technical | A concrete approach (`GUIDE`) · narrow the goal · spike in a separate goal. |
+| approval / product / access / other | The decision itself, with the orchestrator's recommendation. |
 
 ## Reviews (every goal, holistic)
 Use `references/goal-review-prompt.md` with RUN.md's `review` role: op `subagent`
@@ -119,6 +155,8 @@ reflecting it) → op `events`; still nothing → queue a question (a child may 
 holding messages for the user's approval, or its CLI session may have failed).
 
 ```
+PAUSE <blocker id>: finish the command you're running, start nothing new, set state: paused, end your turn
+RESUME <blocker id>: <one-line outcome> — continue where you stopped
 NEXT M<n>.g<k>: start — <goal text from PLAN v<N>> — guidance: <contracts, what other milestones did, reviewer notes, pitfalls> — plan note: approved | not yet reviewed
 PLAN-REVIEW M<n>.g<k>: approved | changes — <list>
 GUIDE M<n>.g<k>-<seq>: <approach, files, steps, contract, fake>
@@ -148,5 +186,6 @@ for any goal-list mismatch; note corrections in REGISTER.
 
 ## Never in a tick
 - Ask a second question while one is OPEN.
+- Let any child keep working while a blocker is open (pause everyone first).
 - Message a child that is working normally without a reason from the table.
 - Implement milestone code, run a child's full suite, or merge/deploy without a yes.

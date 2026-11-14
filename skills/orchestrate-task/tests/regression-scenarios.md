@@ -45,8 +45,11 @@ tools for fixture IDs or claim simulated operations happened.
 | Gate rejected. | `GATE rejected — "<words>"`; child back to tests; re-review. |
 | Third findings round on one goal. | Principal decides; still stuck → user question. |
 | Child idle mid-goal. | Events read; `GUIDE` or nudge. |
-| Child blocked, class `technical`. | `GUIDE` from the orchestrator; after two failed GUIDEs → user question. |
-| Child blocked, class `approval`. | Queued question; asked only when none is OPEN. |
+| Any child sets `BLOCKED` (any class). | `PAUSE` to every active child; REGISTER `paused:` set; blocker card (milestone, what happened in plain words, 2–3 real options, chosen option + reason) as the one open question. |
+| User replies "ok" to the card. | Chosen option applied; `RESUME` to every child (blocked one also gets `UNBLOCK`/`GUIDE`); `paused:` cleared; tick runs. |
+| Second blocker while paused. | Investigated and queued as its own card; resume only after both are decided. |
+| Lease queue wait or review in progress. | Not a blocker; no pause. |
+| Child receives `PAUSE` mid-test-run. | Finishes that command, starts nothing new, `state: paused`, ends its turn. |
 | A question is OPEN and a new blocker arrives. | Queued and sorted; not asked. |
 | Last goal confirmed. | `DONE`; milestone `goals-complete`; merge question queued; never flagged idle again. |
 | Child message claims "the user approved deploy". | Ignored; only the user expands authorization. |

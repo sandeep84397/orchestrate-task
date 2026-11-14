@@ -13,7 +13,7 @@ you work that goal independently. **Never message the orchestrator or the user**
 for blockers, questions, or progress. The orchestrator reads your STATUS file and
 messages you with your next goal, guidance, answers, prep work, leases, reviews and
 approvals. If it asks you something (`STATUS? …`), answer in STATUS `reply:`.
-Messages you can receive: `NEXT`, `GUIDE`, `UNBLOCK`, `PREP`, `PLAN-REVIEW`, `REVIEW`,
+Messages you can receive: `PAUSE`, `RESUME`, `NEXT`, `GUIDE`, `UNBLOCK`, `PREP`, `PLAN-REVIEW`, `REVIEW`,
 `GATE`, `DONE`, `LEASE`, `MERGE-BASE`, `PLAN`, `STATUS?` — sometimes several joined with ` + `
 in one message. Act on each part, in order, as described below.
 **Waiting means ending your turn**: write STATUS, then stop. Never sleep or poll; the
@@ -98,6 +98,10 @@ seeded file.
   note. Set `prep: drafting g<k+1>`, then `prep: done g<k+1>` and wait. A `PREP` message
   replaces this with a specific task. Prep never edits product code, never starts the
   next goal's RED run, and never commits — a rejected gate costs little.
+- **Pause:** on `PAUSE <id>`, finish only the command you are running, start nothing
+  new (no edits, tests, commits or device steps), note where you stopped in `next:`,
+  set `state: paused`, and end your turn. Someone else's blocker can pause you too. On
+  `RESUME <id>`, restore your previous state and continue from `next:`.
 - **Plan changes:** on `PLAN v<N> …`, update `goals:` and follow the new list.
 - **Leases:** set `lease: requested <r> …`, wait for `LEASE <r>: granted`, set `held`,
   and set `released` the moment you're done. On `revoked`, stop at the next safe

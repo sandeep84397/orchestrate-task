@@ -57,7 +57,8 @@ on Resume.
   confirms each goal from its own records before handing the next, so its picture of
   every milestone stays right, and it steers each goal with what it knows of the rest.
 - **No idle sessions.** A child waiting on a gate, answer, lease or review does safe
-  prep work for its next goal.
+  prep work for its next goal. The one exception is an open blocker: then everything
+  stops until the user has seen it and decided, so nothing is built on top of a problem.
 - **Evidence over claims.** Every goal ends with a saved evidence bundle (red, green,
   mutation runs; screenshots; deploy proof). A child's report is not proof; the file is.
 - **Models change; the process doesn't.** No model is hardcoded. Each run discovers
@@ -77,7 +78,11 @@ on Resume.
    the user authorized.
 5. The final integration check runs after merges; it is never the first proof.
 6. Do not implement milestone scope in this chat.
-7. No cleanup deletes: never delete branches, worktrees or files to tidy up. Archiving a
+7. **Any blocker pauses everyone.** When a blocker appears, pause every child, then
+   show the user a plain-language blocker card: which milestone, what happened, the
+   options, the option you choose and why. Act on the user's answer, then resume
+   everyone (`references/pull-loop.md`, Blocker protocol).
+8. No cleanup deletes: never delete branches, worktrees or files to tidy up. Archiving a
    child neither stops it nor merges its work.
 
 ## Token discipline
