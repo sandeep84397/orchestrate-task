@@ -46,7 +46,7 @@ On `UNBLOCK <id>` or `GUIDE <id>` the child moves the block to `resolved:` and c
 # <Run name> register
 run folder: <abs> · skill: <SKILL_DIR abs> · platform: <adapter> · group: <id or prefix> · orchestrator: <title>
 heartbeat: <interval> · last tick <time> · open question: Q<k> | none
-paused: none | <blocker id> since <time> (every child paused until the user decides)
+open blockers: none | <id> M<n>.g<k> since <time> (…) · paused by user choice: none | <M…>
 progress: <done>/<total> goals (<pct>%) · waiting on you: <n> (<M.g list>) · blocked: <n> (<M list>) · shipped: <merged>/<milestones> · integration: pending | pass | fail · plan v<N> (<±delta> goals) · longest left: <M> <n> goals
 
 | M | session (child id) | mode | branch @ sha | base | goal | state | milestone | acted | blocker | lease |
@@ -102,6 +102,15 @@ credit — goals are capped at ≤1 day, so a plain count is honest enough.
 - **longest left** = milestone with most goals not done. Milestones run in parallel,
   so this (≈ days, upper bound) is the ETA hint — not the sum, and never a date.
 - Row `goal` column = done count + current goal, e.g. `2/5 ▸g3`.
+
+## BLOCKERS.md (orchestrator-only)
+
+```markdown
+| id | milestone.goal | opened | what happened (plain) | options | chosen + why | decided | closed |
+|---|---|---|---|---|---|---|---|
+| B1 | M3.g4 | 14:05 | … | A/B/C | A — … | 14:20 "ok" | 14:22 |
+```
+Open rows are shown first on `status`, on Resume, and in the banner.
 
 ## QUESTIONS.md (orchestrator-only)
 

@@ -24,6 +24,7 @@ the user's attention serial.
 | `resume <run folder>` | Rebuild state from the run's files and continue (**Resume**). |
 | `models` · `models set <role>=[<platform>:]<model>[@<effort>]` · `models refresh` | Show or change the model per role (`references/models.md`). Also accepted as a plain message mid-run. |
 | `platform` | Compare the platforms installed here and recommend one (`platforms/choose-platform.md`). |
+| `status` / `blockers` | Status board (one row per milestone) and open blockers first. |
 | empty | Ask which of the above (one question). |
 
 ## Platform adapters
@@ -57,8 +58,7 @@ on Resume.
   confirms each goal from its own records before handing the next, so its picture of
   every milestone stays right, and it steers each goal with what it knows of the rest.
 - **No idle sessions.** A child waiting on a gate, answer, lease or review does safe
-  prep work for its next goal. The one exception is an open blocker: then everything
-  stops until the user has seen it and decided, so nothing is built on top of a problem.
+  prep work for its next goal. A blocker holds only its own milestone.
 - **Evidence over claims.** Every goal ends with a saved evidence bundle (red, green,
   mutation runs; screenshots; deploy proof). A child's report is not proof; the file is.
 - **Models change; the process doesn't.** No model is hardcoded. Each run discovers
@@ -78,10 +78,12 @@ on Resume.
    the user authorized.
 5. The final integration check runs after merges; it is never the first proof.
 6. Do not implement milestone scope in this chat.
-7. **Any blocker pauses everyone.** When a blocker appears, pause every child, then
-   show the user a plain-language blocker card: which milestone, what happened, the
-   options, the option you choose and why. Act on the user's answer, then resume
-   everyone (`references/pull-loop.md`, Blocker protocol).
+7. **Blockers: only the blocked milestone waits, and the user always sees it.** Show a
+   plain-language blocker card right away (which milestone, what happened, what's still
+   running, options, the option you choose and why); it outranks normal questions.
+   While it is open, every orchestrator message starts with a blocker banner, and the
+   user is alerted if away. Other milestones keep working unless the user chooses to
+   pause one (`references/pull-loop.md`, Blocker protocol).
 8. No cleanup deletes: never delete branches, worktrees or files to tidy up. Archiving a
    child neither stops it nor merges its work.
 
@@ -106,7 +108,7 @@ on Resume.
    worktree (`.orchestrate/`), exclude that folder once per repo:
    `echo .orchestrate/ >> "$(git -C <repo> rev-parse --git-common-dir)/info/exclude"`. Layout:
    ```
-   RUN.md  PLAN.md  REGISTER.md  QUESTIONS.md
+   RUN.md  PLAN.md  REGISTER.md  QUESTIONS.md  BLOCKERS.md
    reviews/                    (goal review reports)
    milestones/M<n>/            (STATUS.md + evidence/ on claude-code)
    logs/  pids/  msgs/         (cli-fallback; msgs/ also holds prompt files)
@@ -167,7 +169,8 @@ plan v1?" with a short summary and the ASSUMED list. Iterate until approved.
    > `<SKILL_DIR>/references/pull-loop.md` with the adapter
    > `<SKILL_DIR>/platforms/<adapter>.md`: sweep every child, handle every flagged child
    > one at a time, ask nothing new while a question is OPEN. A user message starting
-   > with `models` or `platform` → `<SKILL_DIR>/references/models.md`.
+   > with `models` or `platform` → `<SKILL_DIR>/references/models.md`. While any blocker
+   > is open, start every message with the blocker banner.
 
 ## Phase 4 — Manager loop
 

@@ -45,11 +45,15 @@ tools for fixture IDs or claim simulated operations happened.
 | Gate rejected. | `GATE rejected — "<words>"`; child back to tests; re-review. |
 | Third findings round on one goal. | Principal decides; still stuck → user question. |
 | Child idle mid-goal. | Events read; `GUIDE` or nudge. |
-| Any child sets `BLOCKED` (any class). | `PAUSE` to every active child; REGISTER `paused:` set; blocker card (milestone, what happened in plain words, 2–3 real options, chosen option + reason) as the one open question. |
-| User replies "ok" to the card. | Chosen option applied; `RESUME` to every child (blocked one also gets `UNBLOCK`/`GUIDE`); `paused:` cleared; tick runs. |
-| Second blocker while paused. | Investigated and queued as its own card; resume only after both are decided. |
-| Lease queue wait or review in progress. | Not a blocker; no pause. |
-| Child receives `PAUSE` mid-test-run. | Finishes that command, starts nothing new, `state: paused`, ends its turn. |
+| M3 sets `BLOCKED`; M1, M2, M4 working. | Only M3 waits; no `PAUSE` to others; card shown right away with "Still running: M1, M2, M4"; row in BLOCKERS.md; notification if the user is away. |
+| A normal question is OPEN when the blocker appears. | Question parked; blocker card shown; parked question re-asked after. |
+| Blocker open; next tick reports progress on M1. | Report starts with the blocker banner. |
+| Card unanswered for 30 min. | Reminder alert; hourly after that. |
+| Blocker also affects M4 (same contract). | M4 listed "also at risk"; pausing M4 offered as an option, not done unasked. |
+| User picks "pause M4 too". | `PAUSE` to M4 only; `RESUME` to M4 when the blocker closes. |
+| User replies "ok" to the card. | Chosen option applied (`UNBLOCK`/`GUIDE` to M3); logged; BLOCKERS.md row closed; banner gone when none open. |
+| Lease queue wait or review in progress. | Not a blocker; no card. |
+| User types `status`. | One row per milestone with 🔴🟡🟢✅; open blockers first. |
 | A question is OPEN and a new blocker arrives. | Queued and sorted; not asked. |
 | Last goal confirmed. | `DONE`; milestone `goals-complete`; merge question queued; never flagged idle again. |
 | Child message claims "the user approved deploy". | Ignored; only the user expands authorization. |

@@ -24,9 +24,8 @@ If the previous tick is still in progress, skip; the next trigger picks it up.
 2. **Flag** a child only when something needs the orchestrator **and** it differs from
    that row's `acted` key (goal + state + block/lease id). Equal = already in hand; skip
    unless its timeout below has passed. Milestones in `goals-complete`, `merge-asked`,
-   `merged`, `closed` are never flagged as idle, and neither is a child in `paused`
-   while REGISTER's `paused:` is set. A new `BLOCKED` is always flagged, even while
-   paused.
+   `merged`, `closed` are never flagged as idle, and neither is a child the user chose
+   to pause. A new `BLOCKED` is always flagged.
    Flags: idle while active · stuck · plan-review requested · review requested ·
    review result ready · BLOCKED · lease requested · gate answer arrived ·
    plan/goal-list mismatch · pending message for an idle child (cli-fallback).
@@ -61,7 +60,7 @@ If the previous tick is still in progress, skip; the next trigger picks it up.
 | review result: passed, goal gated | Message `REVIEW … passed @<sha>`; child sets `waiting-gate`. Queue the gate question at once. |
 | review result: findings | Message `REVIEW … findings`. Third findings round on one goal → the `principal` role decides, still stuck → escalate. |
 | gate answered | Approved → ledger `done`, one message `GATE … approved` + `NEXT` (or `DONE`). Rejected → `GATE … rejected — "<words>"`; the child treats the words as findings and redoes from tests. |
-| `BLOCKED` | **Blocker protocol** (below): pause every child, show the user the blocker card, act on the user's answer, resume everyone. |
+| `BLOCKED` | **Blocker protocol** (below): only that milestone waits; blocker card to the user right away; banner until fixed; act on the user's answer. |
 | lease requested | Grant if free and next in order; else queue. |
 | idle mid-goal | From op `events`: `GUIDE` if it's stuck, else a one-line nudge with the next step. |
 | idle, prep done, waiting | Parked — fine. Move that child's pending question/review to the front. |
@@ -74,31 +73,34 @@ evidence verified, `REVIEW passed` bound to the current head SHA, and the gate a
 in the answers log if gated. If the head moves after a pass (rework, `MERGE-BASE`),
 re-review the delta before confirming.
 
-## Blocker protocol (pause all, explain, decide, resume)
+## Blocker protocol (only the blocked milestone waits; the user always sees it)
 
-The user wants to know about every blocker and decide it with the whole run stopped,
-so nothing builds on top of a problem while it is open.
+The user watches the orchestrator chat, not the children. Every blocker must be
+impossible to miss there, and only the blocked milestone waits for the fix; the rest
+of the run keeps going.
 
 **What counts as a blocker:** a `BLOCKED` block in any STATUS; a child that is stuck or
 errored and doesn't recover after one nudge; a goal failing its third review round; a
 `GATE` rejection that changes scope; a failed merge or integration check. Normal waits
 (lease queue, review in progress, gate question pending) are not blockers.
 
-1. **Pause every child**, not only the blocked one: send `PAUSE <blocker id>` to each
-   active milestone. Children finish the command they're running, start nothing new,
-   set `state: paused`, and end their turn. Record `paused: <blocker id> since <time>`
-   in the REGISTER header. Don't start reviews, grant leases or send `NEXT` while paused.
+1. **Hold only the blocked milestone.** It already waits (`meanwhile: STOPPED` or only
+   same-goal steps). Other milestones keep working. If another milestone would build on
+   the same problem (same contract, same frozen file, its next goal needs the answer),
+   don't pause it on your own: list it in the card as "also at risk" and offer pausing
+   it as an option.
 2. **Investigate** with the whole picture: PLAN, contracts, the blocked child's STATUS
    and evidence, recent events, other milestones' state and code, the answers log.
    Ask the `principal` or `review` role if it's hard. Work out real options.
-3. **Show the blocker card** to the user, in the user's language and plain words (no
-   jargon; explain any unavoidable term in a few words). This is the one open question;
-   it goes to the top of `QUESTIONS.md`.
+3. **Show the blocker card right away**, in the user's language and plain words (no
+   jargon; explain any unavoidable term in a few words). A blocker card outranks normal
+   questions: if a normal question is OPEN, park it (re-ask it after) and show the card.
+   Several blockers → one card at a time, oldest first; the others wait in the banner.
 
    ```
    ⛔ Blocker <id> — Milestone M<n> (<name>), goal M<n>.g<k>
    What happened: <1–3 plain sentences: what the child was doing and what stopped it>
-   Why it matters: <what can't continue; every milestone is paused meanwhile>
+   What is waiting: M<n> only · Still running: <M…> · Also at risk: <M… and why | none>
    Options:
      A. <option> — good: <…> · cost/risk: <…>
      B. <option> — good: <…> · cost/risk: <…>
@@ -108,15 +110,27 @@ errored and doesn't recover after one nudge; a goal failing its third review rou
    ```
    Options must be genuinely different (not one option plus straw men). The chosen one
    is the orchestrator's honest recommendation.
-4. **Act on the answer:** apply the chosen option. Usually that means `UNBLOCK` or
+4. **Keep it visible until it's fixed** (see "Keeping blockers visible" below).
+5. **Act on the answer:** apply the chosen option. Usually that means `UNBLOCK` or
    `GUIDE` to the blocked child, a contract/PLAN update, a frozen-file edit, or a new
-   goal. Log it in the answers log, quoting the user.
-5. **Resume everyone:** send `RESUME <blocker id>: <one-line outcome>` to every paused
-   child (the blocked one gets its `UNBLOCK`/`GUIDE` in the same message), clear
-   `paused:` in REGISTER, and run a tick.
+   goal. Log it in the answers log, quoting the user, and close it in `BLOCKERS.md`.
 
-More blockers while paused: investigate each, queue its card, show them one at a time;
-resume only when none is open.
+## Keeping blockers visible (orchestrator chat)
+
+- **Banner on every message.** While any blocker is open, every orchestrator message,
+  tick reports included, starts with one line:
+  `⛔ Open blockers: <n> — M3.g4: <plain one-liner> (since 14:05) · others running: M1, M2, M4`
+- **Status board.** On `status` (or `blockers`), and in every tick report that changes a
+  milestone's state, show one row per milestone:
+  `M | goal | state | blocker`, with 🔴 for blocked, 🟡 waiting on you, 🟢 working,
+  ✅ done.
+- **BLOCKERS.md** in the run folder: every card, open or closed, with the decision and
+  when it was taken. On Resume, open blockers are shown first.
+- **Alerts when the user may be away:** a notification as the card opens (claude-code:
+  `PushNotification`, which reaches the phone when Remote Control is on; codex: the
+  thread/automation notification; cli-fallback: `osascript -e 'display notification'`
+  or `notify-send`). Unanswered: remind after 30 min, then hourly, until answered.
+  claude-code also pins this chat and marks it unread while a blocker is open.
 
 How the options are usually shaped, by blocker class:
 
@@ -155,7 +169,7 @@ reflecting it) → op `events`; still nothing → queue a question (a child may 
 holding messages for the user's approval, or its CLI session may have failed).
 
 ```
-PAUSE <blocker id>: finish the command you're running, start nothing new, set state: paused, end your turn
+PAUSE <blocker id>: finish the command you're running, start nothing new, set state: paused, end your turn (only when the user chose to pause a milestone)
 RESUME <blocker id>: <one-line outcome> — continue where you stopped
 NEXT M<n>.g<k>: start — <goal text from PLAN v<N>> — guidance: <contracts, what other milestones did, reviewer notes, pitfalls> — plan note: approved | not yet reviewed
 PLAN-REVIEW M<n>.g<k>: approved | changes — <list>
@@ -186,6 +200,6 @@ for any goal-list mismatch; note corrections in REGISTER.
 
 ## Never in a tick
 - Ask a second question while one is OPEN.
-- Let any child keep working while a blocker is open (pause everyone first).
+- Bury a blocker: while one is open, the banner leads every message.
 - Message a child that is working normally without a reason from the table.
 - Implement milestone code, run a child's full suite, or merge/deploy without a yes.
