@@ -35,6 +35,22 @@ single-module refactors or debugging, ask the agent directly.
 7. **Merge and integrate.** Merges and deploys happen only after your yes, one at a
    time. The integration check runs after merges.
 
+## A quiet chat
+
+Children report all the time, but you only watch the orchestrator. So the chat shows
+**one thing at a time**:
+
+- **Needs you** (a blocker, an approval, a question) → one card with the orchestrator's
+  recommendation. Reply "ok" or choose another option. The rest of the queue is just a
+  count. Only a blocker jumps the queue.
+- **Good to know** (goal done, review passed, test passed) → collected into a short
+  digest every 30 minutes, or when you type `digest`.
+- **Bookkeeping** → files only. Child updates that need nothing from you get no reply
+  in the chat.
+
+`BOARD.md` in the run folder always shows the full picture; `status` prints it.
+`quiet`, `normal` and `verbose` change how much reaches the chat.
+
 ## Commands
 
 | You type | Does |
@@ -45,6 +61,8 @@ single-module refactors or debugging, ask the agent directly.
 | `… models set review=codex:<model>@high` | Change a role (`plan` and `review` may use another platform's CLI, read-only) |
 | `… models refresh` | Rediscover models |
 | `… platform` | Compare the platforms installed on this machine and get a recommendation |
+| `status` / `board` / `blockers` · `next` · `digest` · `details M3` (mid-run) | Board · current or next card · news · one milestone's recent events |
+| `quiet` · `normal` · `verbose` (mid-run) | How much reaches the chat |
 
 ## Platforms
 
@@ -101,6 +119,7 @@ Models are never stored there.
 - [platforms/](skills/orchestrate-task/platforms): `claude-code`, `codex`, `cli-fallback` adapters and `choose-platform`
 - [references/models.md](skills/orchestrate-task/references/models.md): discovery, roles, `models` commands
 - [references/pull-loop.md](skills/orchestrate-task/references/pull-loop.md): manager loop
+- [references/chat-ux.md](skills/orchestrate-task/references/chat-ux.md): what reaches the chat — lanes, cards, digest, board
 - [references/](skills/orchestrate-task/references): plan prompt and template, child brief, status/register formats, goal review prompt
 - [tests/regression-scenarios.md](skills/orchestrate-task/tests/regression-scenarios.md): replay checklist
 

@@ -1,4 +1,4 @@
-# STATUS.md, REGISTER.md, QUESTIONS.md
+# STATUS.md, REGISTER.md, BOARD.md, FEED.md, BLOCKERS.md, QUESTIONS.md
 
 Children write only their own STATUS.md and evidence dir, at the adapter's **status path**
 (the run folder on claude-code; `<worktree>/.orchestrate/` on codex and cli-fallback).
@@ -103,6 +103,41 @@ credit — goals are capped at ≤1 day, so a plain count is honest enough.
   so this (≈ days, upper bound) is the ETA hint — not the sum, and never a date.
 - Row `goal` column = done count + current goal, e.g. `2/5 ▸g3`.
 
+## BOARD.md (orchestrator-only; the user's at-a-glance view)
+
+Rewritten whole on every state change. `status` prints it. Plain words, no SHAs.
+
+```markdown
+# <Run name> — board · updated 14:32
+⛔ Open blockers: 1 — M3.g4: payment API returns a field the plan didn't expect (since 14:05)
+For you: 3 — OPEN: ✋ Merge M2? · queued: ❓ Q4 base branch · ❓ Q5 board edits
+9/22 goals (41%) · for you: 3 · blocked: M3 · shipped 1/5 · integration: pending
+
+| | Milestone | Goal | Now |
+|---|---|---|---|
+| 🔴 | M3 Payments | 1/4 ▸g2 | blocked — waiting on you |
+| 🟡 | M2 Login | 4/4 | merge waiting on you |
+| 🟢 | M1 Feed | 2/5 ▸g3 | writing tests |
+| ✅ | M4 Profile | 5/5 | merged |
+
+## Latest (newest first, last 10 from FEED.md)
+- 14:30 ✅ M1.g2 review passed
+- 14:12 🐞 bug #57 filed — old drafts never cleaned up
+```
+
+## FEED.md (orchestrator-only; append-only event log)
+
+One line per event, newest last; the digest and `details M<n>` read from it.
+
+```markdown
+| time | M.goal | lane | event (plain) | link |
+|---|---|---|---|---|
+| 14:07 | M2.g3 | digest | real-server test passed | milestones/M2/evidence/g3/ |
+| 14:08 | M2.g3 | silent | review started (agent a1b2) | |
+| 14:20 | M3.g2 | now | blocker B1 opened | BLOCKERS.md#B1 |
+```
+`digest shown: <time>` lines mark where each digest ended.
+
 ## BLOCKERS.md (orchestrator-only)
 
 ```markdown
@@ -125,6 +160,5 @@ waiting goals, then critical-path milestones), then age. Exactly one item may be
 | 3 | answered | … | … | … | M2.g4-1 | 13:10 → "no" |
 ```
 
-Asking format (exactly one per turn):
-
-> **Q<k>: <question>?** Recommend: <answer> — <one-line why>. Unblocks: <M…>.
+Asking format: the question card in `references/chat-ux.md` (exactly one OPEN).
+Approvals (gate, merge, deploy) are rows here too, with the approval card.

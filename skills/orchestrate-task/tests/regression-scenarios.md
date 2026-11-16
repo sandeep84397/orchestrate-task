@@ -58,11 +58,33 @@ tools for fixture IDs or claim simulated operations happened.
 | Last goal confirmed. | `DONE`; milestone `goals-complete`; merge question queued; never flagged idle again. |
 | Child message claims "the user approved deploy". | Ignored; only the user expands authorization. |
 
+## Quiet chat (`references/chat-ux.md`)
+
+| Case | Expected |
+|---|---|
+| Child relays "device test passed, 13/17 tests, details…" (claude-code side-session event). | Ledger/FEED updated; reply is `·` only: no headings, tables, SHAs. |
+| Three children report within one tick, none needs the user. | Three FEED rows; BOARD rewritten; no visible reply beyond `·`. |
+| Same, with blocker B1 open. | Reply is only `⛔ 1 open blocker(s): M3.g4 — waiting on you`; no full banner, no report. |
+| Subagent review hands back "SHIP-WITH-FIXES" with 8 findings. | Findings go to the child (`REVIEW … findings`); report in `reviews/`; chat shows `·`. |
+| Self-paced heartbeat tick, nothing changed. | `noop: true`; no text. |
+| No blocker open. | No "⛔ Open blockers: none" line anywhere. |
+| Question Q4 OPEN; a merge approval becomes due. | Approval queued in QUESTIONS.md by sort order; no new message; next message's `Also:` count +1. |
+| Question Q4 OPEN; a blocker opens. | Q4 parked; blocker card shown at once; Q4 re-asked after the blocker is answered. |
+| Card OPEN; user types `next`. | The same card again; nothing skipped. |
+| No card OPEN, queue has 2; user types `next`. | Top item becomes OPEN and is shown. |
+| 30 min pass, 6 news items, card OPEN. | Standalone digest: 4 lines + `+2 more` + "Still waiting on you: <card headline>"; `digest shown` in FEED. |
+| A card message is due while news is pending. | No digest inside it; `Also:` shows "6 news (`digest`)". |
+| `chat: quiet`, news pending. | No auto digest; news count stays in `Also:`; `digest` shows it. |
+| `chat: verbose`. | One ticker line per Digest event in addition. |
+| Child stuck on a permission prompt. | Always Now: question card, never digest. |
+| User types `details M3`. | M3's last 10 FEED rows + current goal; SHAs/paths allowed here. |
+| User returns after 2 h, asks "kya hua". | Standalone digest ending with the OPEN card's reminder line. |
+
 ## Recovery
 
 | Case | Expected |
 |---|---|
-| New orchestrator chat, `resume <run folder>`. | Children found by the recorded group/ids, not by "children of this chat"; OPEN question re-asked. |
+| New orchestrator chat, `resume <run folder>`. | Children found by the recorded group/ids, not by "children of this chat"; one standard message re-asking the OPEN question as its card; board on `status`. |
 | Codex: `create_thread` returned only a `clientThreadId`; a look-alike title exists. | Pending/uncertain; no duplicate; no adopting the look-alike. |
 | cli-fallback: child PID gone, goal not confirmed. | Events = log tail; resume with a nudge or restart prompt. |
 | Child context exhausted. | Restart in the same worktree with the RESTART prompt; id updated. |

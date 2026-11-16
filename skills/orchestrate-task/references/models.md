@@ -61,6 +61,7 @@ available (probed): <platform:model (tier) list> · rejected: <model — reason>
 | principal | claude-code | agent `<persona>` | — | project persona |
 
 heartbeat: <interval> via <mechanism> · id: <loop/automation/scheduler id, if any>
+chat: normal | quiet | verbose · digest_every: 30m | <interval> | off
 child autonomy: <what children may run without asking — cli-fallback only>
 confirmed CLI flags: <cli-fallback only>
 changes:

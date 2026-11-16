@@ -3,7 +3,8 @@
 The orchestrator is the **manager** of every milestone chat. It holds the whole
 picture — PLAN.md, the goal ledger, every child's state, every contract, every open
 question — and decides each child's next move: hand the next goal, unblock, guide,
-review, grant, or escalate to the user. Children never message it; it pulls.
+review, grant, or escalate to the user. Children never message it; it pulls. Some hosts
+relay a child's turn report anyway: that is a trigger to sweep, never proof of anything.
 
 **Keep every child busy.** A child whose milestone still has work should not sit idle
 waiting on the orchestrator. Detecting that and handing it its next piece of work is
@@ -14,6 +15,8 @@ the first job of every tick.
 - An idle notice from a child (where the adapter supports one) or a host wake-up.
 - Every user answer (after relaying it).
 - A background review agent finishing.
+- A child's turn report or message relayed by the host (claude-code relays them).
+Each is processed fully; what reaches the chat is decided by `references/chat-ux.md`.
 If the previous tick is still in progress, skip; the next trigger picks it up.
 
 ## Tick procedure
@@ -33,9 +36,12 @@ If the previous tick is still in progress, skip; the next trigger picks it up.
    review, lease, gate. Finish one child's decision, message and register update
    before the next. Slow work (review agents) runs in the background — start it,
    record it, move on.
-4. **Report** to the user only on change, one line:
-   `[14:05] 9/22 goals (+1) · M3 g2 done → g3 red · you: 2 waiting · blocked: M4 · shipped 1/5`
-5. **Ask:** if no question is OPEN and the queue is non-empty, ask the top one.
+4. **Record** every event in `FEED.md` with its lane (Now / Digest / Silent,
+   `references/chat-ux.md`); rewrite `BOARD.md` if any state changed.
+5. **Show** only what `references/chat-ux.md` allows: a new blocker → its card at once
+   (it parks the OPEN question); the OPEN card just answered → the next card. Anything
+   else → nothing visible (or the one fixed line when the turn must end with text). A
+   digest goes out only when it is due.
 
 ### Liveness
 - **Idle** = not running, milestone `active`, and its current goal not confirmed.
@@ -117,13 +123,14 @@ errored and doesn't recover after one nudge; a goal failing its third review rou
 
 ## Keeping blockers visible (orchestrator chat)
 
-- **Banner on every message.** While any blocker is open, every orchestrator message,
-  tick reports included, starts with one line:
+- **Banner on every message.** While any blocker is open, every standard message and
+  digest starts with this line (never when none is open; quiet event replies use the
+  short fixed line in `references/chat-ux.md`):
   `⛔ Open blockers: <n> — M3.g4: <plain one-liner> (since 14:05) · others running: M1, M2, M4`
-- **Status board.** On `status` (or `blockers`), and in every tick report that changes a
-  milestone's state, show one row per milestone:
-  `M | goal | state | blocker`, with 🔴 for blocked, 🟡 waiting on you, 🟢 working,
-  ✅ done.
+- **Board.** `BOARD.md` lists open blockers first, then one row per milestone
+  `M | goal | state | blocker`, with 🔴 blocked, 🟡 waiting on you, 🟢 working, ✅ done.
+  `status` (or `board`, `blockers`) prints it in the chat; it is not repeated in event
+  replies.
 - **BLOCKERS.md** in the run folder: every card, open or closed, with the decision and
   when it was taken. On Resume, open blockers are shown first.
 - **Alerts when the user may be away:** a notification as the card opens (claude-code:
@@ -201,5 +208,7 @@ for any goal-list mismatch; note corrections in REGISTER.
 ## Never in a tick
 - Ask a second question while one is OPEN.
 - Bury a blocker: while one is open, the banner leads every message.
+- Write a report per child event, a section per milestone, or more than one card in a
+  message; echo a child's or reviewer's report into the chat (`references/chat-ux.md`).
 - Message a child that is working normally without a reason from the table.
 - Implement milestone code, run a child's full suite, or merge/deploy without a yes.

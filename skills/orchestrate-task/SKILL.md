@@ -24,7 +24,9 @@ the user's attention serial.
 | `resume <run folder>` | Rebuild state from the run's files and continue (**Resume**). |
 | `models` · `models set <role>=[<platform>:]<model>[@<effort>]` · `models refresh` | Show or change the model per role (`references/models.md`). Also accepted as a plain message mid-run. |
 | `platform` | Compare the platforms installed here and recommend one (`platforms/choose-platform.md`). |
-| `status` / `blockers` | Status board (one row per milestone) and open blockers first. |
+| `status` / `board` / `blockers` | The board: open blockers first, one row per milestone. |
+| `next` · `digest` · `details M<n>` | Next card in the queue · news since the last digest · one milestone's recent feed. |
+| `quiet` · `normal` · `verbose` | How much reaches the chat (`references/chat-ux.md`). |
 | empty | Ask which of the above (one question). |
 
 ## Platform adapters
@@ -68,7 +70,9 @@ on Resume.
 
 1. **One question at a time.** Ask exactly one question, then nothing new until it is
    answered (ticks keep running). The rest wait in `QUESTIONS.md`, ordered by "unblocks
-   the most work soonest", each with a recommendation. Plain text, no question widgets.
+   the most work soonest", each with a recommendation; approvals are questions too. Only
+   a blocker pre-empts the OPEN question. Ask as a plain-text card, never through a
+   question-dialog tool.
 2. No child starts before the user approves the plan.
 3. The orchestrator is the **only writer** of frozen hotspots, `PLAN.md`, `RUN.md`,
    `REGISTER.md`, `QUESTIONS.md`, and the project board.
@@ -86,6 +90,11 @@ on Resume.
    pause one (`references/pull-loop.md`, Blocker protocol).
 8. No cleanup deletes: never delete branches, worktrees or files to tidy up. Archiving a
    child neither stops it nor merges its work.
+9. **Quiet chat: one thing at a time.** Async child updates are processed at once but
+   by lane (`references/chat-ux.md`): only what the user must act on reaches the chat,
+   as one card per message; news goes to `FEED.md` and a periodic digest; bookkeeping
+   stays in files. An async event that needs nothing from the user gets no visible
+   reply (at most one fixed line). `BOARD.md` always holds the full picture.
 
 ## Token discipline
 
@@ -108,7 +117,7 @@ on Resume.
    worktree (`.orchestrate/`), exclude that folder once per repo:
    `echo .orchestrate/ >> "$(git -C <repo> rev-parse --git-common-dir)/info/exclude"`. Layout:
    ```
-   RUN.md  PLAN.md  REGISTER.md  QUESTIONS.md  BLOCKERS.md
+   RUN.md  PLAN.md  REGISTER.md  QUESTIONS.md  BLOCKERS.md  BOARD.md  FEED.md
    reviews/                    (goal review reports)
    milestones/M<n>/            (STATUS.md + evidence/ on claude-code)
    logs/  pids/  msgs/         (cli-fallback; msgs/ also holds prompt files)
@@ -159,7 +168,8 @@ plan v1?" with a short summary and the ASSUMED list. Iterate until approved.
    children's autonomy first. After the first start, send one `STATUS?` and confirm the
    reply lands in STATUS (proves message delivery before anyone depends on it).
 6. **Register:** `REGISTER.md` header (run folder, `SKILL_DIR`, platform, group) and one
-   row per milestone.
+   row per milestone. Create `BOARD.md` and `FEED.md`; where the host can show a file
+   beside the chat, open `BOARD.md` there once.
 7. **Board:** move tickets to In progress if the project has a board and board edits
    are granted (else that is a queued question).
 8. **Heartbeat:** op `heartbeat`, interval from the project config (default 5m), with
@@ -169,17 +179,23 @@ plan v1?" with a short summary and the ASSUMED list. Iterate until approved.
    > `<SKILL_DIR>/references/pull-loop.md` with the adapter
    > `<SKILL_DIR>/platforms/<adapter>.md`: sweep every child, handle every flagged child
    > one at a time, ask nothing new while a question is OPEN. A user message starting
-   > with `models` or `platform` → `<SKILL_DIR>/references/models.md`. While any blocker
-   > is open, start every message with the blocker banner.
+   > with `models` or `platform` → `<SKILL_DIR>/references/models.md`; `status`, `board`,
+   > `blockers`, `next`, `digest`, `details`, `quiet`, `normal`, `verbose` →
+   > `<SKILL_DIR>/references/chat-ux.md`. All output follows that file: sort every event
+   > into Now / Digest / Silent; one card per message; an event that needs nothing from
+   > the user gets no visible reply; never a per-milestone report. While any blocker is
+   > open, the blocker banner leads every standard message.
 
 ## Phase 4 — Manager loop
 
 Every trigger (heartbeat tick, a child's idle notice, a user answer, a finished review)
 runs one tick of `references/pull-loop.md`: sweep every child, flag what needs the
 manager, handle each flagged child one at a time from the decision table, update
-`REGISTER.md` (rows, goal ledger, progress line), report one line on change, and ask the
-next question if none is OPEN. Read that file at the start of every tick rather than
-working from memory.
+`REGISTER.md` (rows, goal ledger, progress line), `BOARD.md` and `FEED.md`, and show
+the user only what its lane allows (`references/chat-ux.md`), with the next card if
+none is OPEN. The same applies to every async arrival: a child's turn report or message
+relayed by the host is a trigger, not something to echo. Read both files at the start
+of every tick rather than working from memory.
 
 ## Shared resources and gates
 
@@ -218,7 +234,8 @@ children, only on the user's yes.
 2. Op `sweep` over the registered child ids (by group, never by "children of this
    chat"); reconcile per `references/pull-loop.md`. Put this chat in the group.
 3. Restart the heartbeat (Phase 3 step 8) if it isn't running.
-4. If a question is `OPEN`, re-ask **that** question, never a new one.
+4. One standard message: if a question is `OPEN`, re-ask **that** question as its card,
+   never a new one; else the top of the queue. The board is on `status`.
 
 ## References
 
@@ -228,5 +245,6 @@ children, only on the user's yes.
 - `references/child-brief-template.md` — child brief.
 - `references/status-and-register.md` — STATUS / REGISTER / QUESTIONS formats, progress.
 - `references/pull-loop.md` — manager loop: sweep, decisions, messages, blockers.
+- `references/chat-ux.md` — what reaches the chat: lanes, cards, digest, board, copy rules.
 - `references/goal-review-prompt.md` — holistic review at every goal completion.
 - `references/project-config-template.md` — per-project config (kept outside the skill).

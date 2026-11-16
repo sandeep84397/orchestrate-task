@@ -20,6 +20,9 @@ in one message. Act on each part, in order, as described below.
 orchestrator wakes you with a message. Before each step, read
 `<worktree>/.orchestrate/INBOX.md` if it exists; messages that arrive mid-turn land
 there.
+**Your end-of-turn message is relayed to the orchestrator** by some hosts. Keep it to
+one line: `M<n>.g<k>: <state> — <one plain fact> — details: <path>`. Reports, tables
+and device logs go in your evidence folder, never in that message.
 
 ## Where
 - Repo: <abs path>. Your worktree was cut from base `<sha>`.
