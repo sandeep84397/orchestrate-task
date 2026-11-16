@@ -13,13 +13,15 @@ the first job of every tick.
 ## Triggers
 - Heartbeat tick (op `heartbeat`, interval from RUN.md, default 5m).
 - An idle notice from a child (where the adapter supports one) or a host wake-up.
-- Every user answer (after relaying it).
+- Every user answer (after relaying it), in the chat or as a new `ANSWERS.md` entry.
 - A background review agent finishing.
 - A child's turn report or message relayed by the host (claude-code relays them).
 Each is processed fully; what reaches the chat is decided by `references/chat-ux.md`.
 If the previous tick is still in progress, skip; the next trigger picks it up.
 
 ## Tick procedure
+0. **Dashboard answers.** New `ANSWERS.md` entries are user answers; apply them first,
+   oldest first, per `references/dashboard.md`, and log each `ANS-<n>`.
 1. **Sweep every child (cheap, two calls, every tick).**
    - Op `sweep` → for each registered child id: running or idle, last activity.
    - `grep -H -E '^(goals|goal|state|prep|lease|updated|ack|BLOCKED M)' <every child's status path>`
@@ -255,3 +257,6 @@ for any goal-list mismatch; note corrections in REGISTER.
 - Do an action a permission check stopped in a child, or ask another session to.
 - Decide on a child's diagnosis without checking it.
 - Show a merge card before `references/gates.md` §4 holds.
+- Apply an `ANSWERS.md` entry to a card that is no longer open, or beyond what its
+  card asked.
+- Show a blocker or question card without writing `cards/<id>.md`.

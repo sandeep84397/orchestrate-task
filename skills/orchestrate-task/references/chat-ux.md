@@ -80,6 +80,10 @@ Also: 2 more for you after this · 4 news (`digest`) · `status` for the board
 
 ## Cards
 
+Every blocker and question card is also written to `cards/<id>.md`
+(`references/dashboard.md`), so the dashboard shows the same card. An answer can arrive
+from there (`ANSWERS.md`); it counts exactly like a reply in the chat.
+
 Shape: **decision as headline · why it matters · recommendation · how to answer.**
 Every headline names where it comes from: milestone · ticket · plain name, and the goal
 when there is one: `M4 · #150 Profile tiles · g2`. Goal ids alone are `M4.g2`.
@@ -145,6 +149,7 @@ beside the chat, open it there once at setup.
 | `quiet` | Cards and blocker alerts only; digest on request (the news count stays in `Also:`). |
 | `normal` | Default: cards, digest every `digest_every`, nothing else. |
 | `verbose` | Normal + one ticker line per Digest event (for debugging a run). |
+| `dashboard` | One line: the command that opens the run's local page (`references/dashboard.md`). |
 
 The level is stored in RUN.md (`chat: quiet | normal | verbose`).
 

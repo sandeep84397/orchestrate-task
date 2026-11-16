@@ -27,6 +27,7 @@ the user's attention serial.
 | `status` / `board` / `blockers` | The board: open blockers first, one row per milestone. |
 | `next` · `digest` · `details M<n>` | Next card in the queue · news since the last digest · one milestone's recent feed. |
 | `quiet` · `normal` · `verbose` | How much reaches the chat (`references/chat-ux.md`). |
+| `dashboard` | The command that opens the run's local web page (`references/dashboard.md`). |
 | empty | Ask which of the above (one question). |
 
 ## Platform adapters
@@ -132,6 +133,8 @@ on Resume.
    `echo .orchestrate/ >> "$(git -C <repo> rev-parse --git-common-dir)/info/exclude"`. Layout:
    ```
    RUN.md  PLAN.md  REGISTER.md  QUESTIONS.md  BLOCKERS.md  BOARD.md  FEED.md
+   cards/                      (one file per open blocker and question, for the dashboard)
+   ANSWERS.md  chats/          (written only by the dashboard; read on every tick)
    reviews/                    (goal review reports)
    prod/                       (live-state reads before and after every prod step)
    milestones/M<n>/            (STATUS.md + evidence/ on claude-code)
@@ -186,13 +189,15 @@ the backlog; anything the user strikes is dropped. Iterate until approved.
    reply lands in STATUS (proves message delivery before anyone depends on it).
 6. **Register:** `REGISTER.md` header (run folder, `SKILL_DIR`, platform, group) and one
    row per milestone. Create `BOARD.md` and `FEED.md`; where the host can show a file
-   beside the chat, open `BOARD.md` there once.
+   beside the chat, open `BOARD.md` there once. Offer the dashboard in one line: the
+   command from `references/dashboard.md`, never started unasked.
 7. **Board:** move tickets to In progress if the project has a board and board edits
    are granted (else that is a queued question).
 8. **Heartbeat:** op `heartbeat`, interval from the project config (default 5m), with
    this prompt, absolute paths filled in. It must stand alone, because the skill may
    not be reloaded after the host compacts context:
-   > Orchestrator tick: read `<run folder>/REGISTER.md` and `RUN.md`, follow
+   > Orchestrator tick: read `<run folder>/REGISTER.md` and `RUN.md`; first apply new
+   > entries in `ANSWERS.md` per `<SKILL_DIR>/references/dashboard.md`; then follow
    > `<SKILL_DIR>/references/pull-loop.md` with the adapter
    > `<SKILL_DIR>/platforms/<adapter>.md`: sweep every child, handle every flagged child
    > one at a time, ask nothing new while a question is OPEN. A user message starting
@@ -203,7 +208,8 @@ the backlog; anything the user strikes is dropped. Iterate until approved.
    > the user gets no visible reply; never a per-milestone report. While any blocker is
    > open, the blocker banner leads every standard message. Prod changes, permission
    > blocks, irreversible goals and merges → `<SKILL_DIR>/references/gates.md`. Text for
-   > the user → `<SKILL_DIR>/references/writing.md`.
+   > the user → `<SKILL_DIR>/references/writing.md`. Every blocker or question card
+   > is also written to `cards/<id>.md`.
 
 ## Phase 4 — Manager loop
 
@@ -256,7 +262,7 @@ adapter's archive action where available; completion alone never authorizes arch
 ## Resume (orchestrator restarted, context lost, or a new chat)
 
 1. Read `REGISTER.md` (header: run folder, `SKILL_DIR`, platform, group), `RUN.md`,
-   `QUESTIONS.md`, `PLAN.md`. Load the recorded adapter.
+   `QUESTIONS.md`, `PLAN.md`, and unread `ANSWERS.md` entries. Load the recorded adapter.
 2. Op `sweep` over the registered child ids (by group, never by "children of this
    chat"); reconcile per `references/pull-loop.md`. Put this chat in the group.
 3. Restart the heartbeat (Phase 3 step 8) if it isn't running.
@@ -274,5 +280,6 @@ adapter's archive action where available; completion alone never authorizes arch
 - `references/chat-ux.md` — what reaches the chat: lanes, cards, digest, board, copy rules.
 - `references/gates.md` — prod changes, permission checks, irreversible goals, merge readiness.
 - `references/writing.md` — how every message, card and report is written.
+- `references/dashboard.md` — the local web page: card files, `ANSWERS.md`, side chat.
 - `references/goal-review-prompt.md` — holistic review at every goal completion.
 - `references/project-config-template.md` — per-project config (kept outside the skill).

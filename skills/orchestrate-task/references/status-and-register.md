@@ -90,6 +90,8 @@ slots: <used>/<max> (<holders>) · load: <1-min load average> at <time> · criti
 
 ## Answers log
 - <time> Q3 → "<user's words>" → relayed to M2, M4
+- <time> ANS-3 (dashboard) B1 → "A" + note → relayed to M3
+The highest `ANS-<n>` here marks which dashboard answers are read (`references/dashboard.md`).
 
 ## Merges / deploys / frozen edits
 - <time> M2 merged `<sha>` → <branch> (approved Q7)
@@ -175,5 +177,7 @@ waiting goals, then critical-path milestones), then age. Exactly one item may be
 | 3 | answered | … | … | … | M2.g4-1 | 13:10 → "no" |
 ```
 
-Asking format: the question card in `references/chat-ux.md` (exactly one OPEN).
+Asking format: the question card in `references/chat-ux.md` (exactly one OPEN). Each
+open row also has `cards/Q<n>.md` (blockers: `cards/B<n>.md`), format in
+`references/dashboard.md`.
 Approvals (gate, merge, deploy) are rows here too, with the approval card.

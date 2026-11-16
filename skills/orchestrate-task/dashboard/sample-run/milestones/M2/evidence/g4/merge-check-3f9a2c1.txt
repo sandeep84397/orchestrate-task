@@ -1,0 +1,5 @@
+Real-server device check on 3f9a2c1 (Pixel 9a, prod backend)
+- profile grid shows 24 of 24 thumbnails
+- placeholder shown while loading: yes
+- cached after relaunch: yes
+PASS

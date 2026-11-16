@@ -72,6 +72,27 @@ Lessons from real runs, enforced on every run (`references/gates.md`):
   user state, and note background cost. Finished milestones pick up approved backlog
   goals instead of sitting idle; heavy jobs share a load budget.
 
+## Dashboard
+
+A local web page for the run, the same for every agent platform:
+
+```bash
+python3 ~/.claude/skills/orchestrate-task/dashboard/server.py <run folder> --open
+```
+
+- One decision at a time: blockers first, then merges, approvals and questions, each
+  with its options, recommendation and evidence. Your answer goes to `ANSWERS.md`;
+  the orchestrator applies it on its next check, exactly like a reply in the chat.
+- Milestone tracks with a station per goal and a merge square; click one for its goals,
+  evidence, latest events, and pause/resume.
+- A side chat on any card, option or milestone: a read-only helper (the run's review
+  model) answers from the run files, one model call per question. "Add to my answer as
+  a note" carries a reply into your decision.
+- Local only: bound to 127.0.0.1 with a per-session token. Python 3 standard library,
+  nothing to install. Try it on the bundled sample: `dashboard/sample-run`.
+
+Details: [references/dashboard.md](skills/orchestrate-task/references/dashboard.md).
+
 ## Commands
 
 | You type | Does |
@@ -84,6 +105,7 @@ Lessons from real runs, enforced on every run (`references/gates.md`):
 | `… platform` | Compare the platforms installed on this machine and get a recommendation |
 | `status` / `board` / `blockers` · `next` · `digest` · `details M3` (mid-run) | Board · current or next card · news · one milestone's recent events |
 | `quiet` · `normal` · `verbose` (mid-run) | How much reaches the chat |
+| `dashboard` (mid-run) | The command that opens the run's local page |
 
 ## Platforms
 
@@ -143,12 +165,14 @@ Models are never stored there.
 - [references/chat-ux.md](skills/orchestrate-task/references/chat-ux.md): what reaches the chat — lanes, cards, digest, board
 - [references/gates.md](skills/orchestrate-task/references/gates.md): production, permissions, irreversible work, merge readiness
 - [references/writing.md](skills/orchestrate-task/references/writing.md): how messages, cards and reports are written
+- [references/dashboard.md](skills/orchestrate-task/references/dashboard.md) and [dashboard/](skills/orchestrate-task/dashboard): the local web page, its card and answer files
 - [references/](skills/orchestrate-task/references): plan prompt and template, child brief, status/register formats, goal review prompt
 - [tests/regression-scenarios.md](skills/orchestrate-task/tests/regression-scenarios.md): replay checklist
 
 ## Validation status
 
-The regression scenarios are replay checklists, not automated tests. The milestone
+The regression scenarios are replay checklists, not automated tests. The dashboard
+has automated tests: `cd skills/orchestrate-task/dashboard && python3 -m unittest`. The milestone
 process ran live on Claude Code (four milestones, Android + backend) before it was made
 platform-neutral; the Codex and CLI adapters have not had a recorded live run yet.
 
