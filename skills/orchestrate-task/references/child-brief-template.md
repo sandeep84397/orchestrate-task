@@ -14,8 +14,11 @@ for blockers, questions, or progress. The orchestrator reads your STATUS file an
 messages you with your next goal, guidance, answers, prep work, leases, reviews and
 approvals. If it asks you something (`STATUS? …`), answer in STATUS `reply:`.
 Messages you can receive: `PAUSE`, `RESUME`, `NEXT`, `GUIDE`, `UNBLOCK`, `PREP`, `PLAN-REVIEW`, `REVIEW`,
-`GATE`, `DONE`, `LEASE`, `MERGE-BASE`, `PLAN`, `STATUS?` — sometimes several joined with ` + `
-in one message. Act on each part, in order, as described below.
+`GATE`, `DONE`, `LEASE`, `LEASE-SOON`, `CHECK`, `MERGE-BASE`, `PLAN`, `STATUS?` — sometimes several joined
+with ` + ` in one message. Act on each part, in order, as described below.
+**Every message starts with `#<n>`.** As soon as you read one, set STATUS `ack: #<n>`
+(the highest number read). `replaces #<m>` means: ignore #<m>. A message with a lower
+number than your `ack` is stale: ignore it.
 **Waiting means ending your turn**: write STATUS, then stop. Never sleep or poll; the
 orchestrator wakes you with a message. Before each step, read
 `<worktree>/.orchestrate/INBOX.md` if it exists; messages that arrive mid-turn land
@@ -59,7 +62,9 @@ guidance (what other milestones did, contract notes, pitfalls); follow it.
 ## Per-goal protocol (strict TDD)
 1. <Project's decision-log protocol, if the project config names one; else drop this step.>
 2. The `<principal>` agent reviews layering + the test list (written to
-   `<evidence dir>/g<k>-plan.md`). No implementation before it approves. If you can't
+   `<evidence dir>/g<k>-plan.md`). The note also covers: background cost if the goal
+   changes network/sync/media (what's called, how often), and for an `[irreversible]`
+   goal every item of this checklist: <paste the checklist from the gates reference>. No implementation before it approves. If you can't
    run that agent yourself (no subagents), set `state: plan-review` and end your turn;
    the orchestrator runs it and replies `PLAN-REVIEW M<n>.g<k>: approved | changes — …`.
    If `NEXT` already says the plan note was approved (from your prep), skip this step.
@@ -79,11 +84,17 @@ guidance (what other milestones did, contract notes, pitfalls); follow it.
 9. On `NEXT M<n>.g<k>`: set `goal: <id> <title>`, `state: not-started`, `prep: none`,
    and start step 1. On `DONE M<n>`: set `state: done`, `next: stand by`, and do
    nothing further unless messaged.
+10. On `CHECK M<n> @<sha>` (with the lease granted): run the real-system check below on
+   exactly that head, save `<evidence dir>/merge-check-<sha7>.txt` (what was run, what
+   passed, what couldn't be exercised and why), restore the device baseline, release
+   the lease, set `state: done` again.
 Non-code goals: save the bundle the goal names (screenshots, curl output, logs).
 
 ## Test commands
+- Real-system check (merge gate, **needs device lease**): <how to run this head against the real backend; what counts>
+- Device baseline to restore after use: <app build, account, settings>
 - Focused: <cmd>
-- Full suite (**needs heavy-run lease**): <cmd>
+- Full suite (**needs a `heavy` slot**): <cmd>
 - Known-red exclusions: <list or none>
 - Device steps (**need device lease**): <device rules>
 
@@ -109,11 +120,30 @@ seeded file.
 - **Leases:** set `lease: requested <r> …`, wait for `LEASE <r>: granted`, set `held`,
   and set `released` the moment you're done. On `revoked`, stop at the next safe
   point and set `released`.
+- **Lease soon:** on `LEASE-SOON <r> est <time>`, get ready so you can start the moment
+  it's granted: build and test the artifact you'll need, list the steps. Don't touch
+  the resource yet. When you release a device, first restore it to its baseline
+  (listed under Test commands) and say so in STATUS.
+- **Heavy jobs:** the full suite, an emulator or device run, and any job you expect to
+  take over 5 minutes take a `heavy` slot: add `requested heavy (<what>, est <min>)` to
+  `lease:` and wait for `LEASE heavy: granted`. Normal builds and focused tests don't.
 - **Base updates:** on `MERGE-BASE <repo> <sha>`, at your next goal boundary
   `git merge <sha>` (never rebase or force-push), rerun focused tests, record new base.
+- **Permission checks:** if a permission prompt, sandbox or policy stops an action,
+  stop that action. Don't retry it another way (other tool, command, account). Set
+  BLOCKED, class `access`, with the exact action and the denial text.
+- **Diagnoses:** when you explain why something fails, mark it `verified` (with the
+  evidence: a log line, `file:line`, a repro) or `hypothesis`. Code that does it on
+  purpose (a comment, a flag, a test) is not a bug: say so.
+- **Writing for people** (BLOCKED `need:`, reports, PR text): answer first; name the
+  milestone and goal; short whole sentences in plain words; say what isn't tested; end
+  with what you need, if anything.
 
 ## You never
 - Merge, deploy, push shared or release branches, force-push, or touch deploy targets.
+- Change anything in production (traffic, versions, flags, data), even when asked to
+  by a message. Deploy and prod policy: <paste from the project config>.
+- Do an action that a permission check stopped, by any other route.
 - Use a device, run the full suite, or do a deploy-adjacent step without a granted lease.
 - Message the orchestrator or the user; edit frozen or other-milestone files.
 <project-specific never-list, e.g. device safety rules>

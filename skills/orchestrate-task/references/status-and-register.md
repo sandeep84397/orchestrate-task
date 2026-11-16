@@ -16,9 +16,10 @@ state: not-started | plan-review | red | green | mutation-ok | review | waiting-
 prep: none | drafting g<k+1> | done g<k+1> | <PREP task + output path>
 evidence:
 - g1: <evidence dir>/g1-red.txt, g1-green.txt, g1-mutation.txt
-lease: none | requested <r> (<why>, est <min>) | held <r> since <t> | released <r>
+lease: none | requested <r> (<why>, est <min>) | held <r> since <t> | released <r>   (several: separate with `;`)
 next: <next concrete step>
-reply: <answer to the orchestrator's latest STATUS? message, or none>
+ack: #<highest message number read>
+reply: #<n> <answer to that STATUS? message> | none
 
 BLOCKED: none
 
@@ -32,6 +33,7 @@ When blocked, replace `BLOCKED: none` with:
 BLOCKED M<n>.g<k>-<seq>
 blocked: <action>
 evidence: <cmd/output/file:line/SHA>
+diagnosis: <why, one line> — verified (<how>) | hypothesis
 need: <one exact question or approval> — recommend: <answer>
 class: contract | lease | cross-milestone | review | frozen-file | technical | approval | product | access
 meanwhile: <same-goal step that doesn't depend on the answer> | STOPPED
@@ -54,7 +56,7 @@ progress: <done>/<total> goals (<pct>%) · waiting on you: <n> (<M.g list>) · b
 | M1 | m1-… (<child id>) | auto | `…` @ `abc123` | `def456` | 2/5 ▸g3 | red | active | g3:red @14:05 | — | — |
 `mode` = the child's permission/sandbox mode at start. Add each child's status path in the
 milestone notes if it isn't the run folder. `milestone` = active · goals-complete ·
-merge-asked · merged · closed. `acted` = the goal + state + block/lease id the
+merge-ready · on-hold · merged · closed. `acted` for merge readiness = `ready @<sha>`. `acted` = the goal + state + block/lease id the
 orchestrator last acted on, and when; a flag equal to it is already in hand.
 
 ## Goal ledger (orchestrator-confirmed; source of truth for progress)
@@ -70,11 +72,21 @@ Review: `running <agent id> since <t> @<sha>` · `findings r<n>` · `passed r<n>
 two columns are what the orchestrator re-plans with (lease order, when to ask a gate
 question early, which milestone is the long pole).
 
-## Pending messages (cli-fallback: queued while a child's turn is running)
-| child | message file | queued | delivered |
+## Messages (numbered; one open per topic per child)
+| # | child | topic | sent | acked | replaces |
+|---|---|---|---|---|---|
+| 12 | M3 | lease device | 14:05 | 14:07 | |
+cli-fallback also records the message file and when it was delivered.
+
+## Prod state (what the orchestrator last set or read; see `references/gates.md`)
+| what | value | read/set at | by | saved file |
+|---|---|---|---|---|
+
+## Heavy slots and load
+slots: <used>/<max> (<holders>) · load: <1-min load average> at <time> · critical path: <M…>
 
 ## Leases
-| resource | holder | since | queue |
+| resource | holder | since | queue (est start) | next warned (`LEASE-SOON`) |
 
 ## Answers log
 - <time> Q3 → "<user's words>" → relayed to M2, M4
@@ -96,7 +108,8 @@ credit — goals are capped at ≤1 day, so a plain count is honest enough.
   integration failure) adds/removes goals, show `plan v<N> (+n goals)`; never re-base
   silently.
 - **waiting on you** = goals in `waiting-gate` + open user questions blocking a goal.
-  **blocked** = milestones with a `BLOCKED` block. Review/red/green are just "not done".
+  **blocked** = milestones with an open row in BLOCKERS.md (merge-ready is not counted
+  here; it shows as 🟡 waiting on you). Review/red/green are just "not done".
 - **shipped** = milestones merged (from the Merges log) / all milestones.
 - **integration** = pending until the final check runs; the run is 100% only at `pass`.
 - **longest left** = milestone with most goals not done. Milestones run in parallel,
@@ -109,8 +122,8 @@ Rewritten whole on every state change. `status` prints it. Plain words, no SHAs.
 
 ```markdown
 # <Run name> — board · updated 14:32
-⛔ Open blockers: 1 — M3.g4: payment API returns a field the plan didn't expect (since 14:05)
-For you: 3 — OPEN: ✋ Merge M2? · queued: ❓ Q4 base branch · ❓ Q5 board edits
+⛔ Open blockers: 1 — M3 · #88 Payments · g4: the payment API returns a field the plan didn't expect (since 14:05) · merge waiting: M2
+For you: 3 — OPEN: ✋ Merge M2 · #41 Login retry? · queued: ❓ Q4 base branch · ❓ Q5 board edits
 9/22 goals (41%) · for you: 3 · blocked: M3 · shipped 1/5 · integration: pending
 
 | | Milestone | Goal | Now |
@@ -141,9 +154,11 @@ One line per event, newest last; the digest and `details M<n>` read from it.
 ## BLOCKERS.md (orchestrator-only)
 
 ```markdown
-| id | milestone.goal | opened | what happened (plain) | options | chosen + why | decided | closed |
-|---|---|---|---|---|---|---|---|
-| B1 | M3.g4 | 14:05 | … | A/B/C | A — … | 14:20 "ok" | 14:22 |
+| id | milestone.goal | class | opened | what happened (plain) | options | chosen + why | decided | closed |
+|---|---|---|---|---|---|---|---|---|
+| B1 | M3.g4 | contract | 14:05 | … | A/B/C | A — … | 14:20 "ok" | 14:22 |
+Classes: the child classes (STATUS) plus `stuck`, `review-rounds`, `merge-failed`,
+`integration`, `prod-state`. A milestone-level blocker with no goal uses `M<n>.-`.
 ```
 Open rows are shown first on `status`, on Resume, and in the banner.
 

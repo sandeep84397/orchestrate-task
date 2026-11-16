@@ -46,10 +46,29 @@ Rules the plan must satisfy:
    milestone's code or an undeployed backend. Give the exact command, fixtures,
    device needs and known-red exclusions per milestone.
 5. **Shared resources:** list leases (devices, heavy suites, deploy slots), their
-   grant order, and safety rules. Children never deploy or merge themselves.
-6. List open questions for the user, ordered by how much work each answer unblocks,
-   each with a recommended answer and the milestones it unblocks.
-7. Keep it tight: about 1,500 words. Tables over prose.
+   grant order with an estimated start per holder, and safety rules. Children never
+   deploy or merge themselves.
+6. **Contracts match reality.** For every contract with an existing producer (a live
+   endpoint, an existing table), cite a real sample: a saved response or row, or the
+   code that produces it at `file:line`. Fakes are built from that sample. No sample →
+   ASSUMED, plus a goal that captures one before tests depend on it.
+7. **Product rules, end to end.** For each product rule in the goal, walk every user
+   state it touches (signed out, new, owner, viewer, before and after each step) and
+   list what that user can still do. A state where the user can do nothing they could
+   before is a gap: an open question, not a silent decision.
+8. **Mark risky goals.** `[irreversible]` for data scripts, backfills, migrations,
+   deletes, bulk writes and anything sent to real users (they follow the checklist in
+   the orchestrator's gates reference). `[high-risk]` for goals touching auth,
+   payments, data integrity or prod traffic: these get two independent reviewers.
+9. **Background cost.** Every goal that adds or changes network calls, sync, polling,
+   prefetch, uploads or media gets a line: what is called, how often, and a rough
+   count per user per day.
+10. **Backlog.** Up to 5 small follow-up goals per milestone that stay inside its owned
+    files (polish, known bugs, should-fixes). They run only when the milestone's main
+    goals are done and the user approved the backlog with the plan.
+11. List open questions for the user, ordered by how much work each answer unblocks,
+    each with a recommended answer and the milestones it unblocks.
+12. Keep it tight: about 1,500 words. Tables over prose.
 
 ## PLAN template
 0. Changed facts since last known state (VERIFIED/ASSUMED)
@@ -57,8 +76,9 @@ Rules the plan must satisfy:
    (exclusive) · contracts produced/consumed. Then the FROZEN list. Then contracts
    C1…Cn. Then goals per milestone. Then the testability table.
 2. Independence: pairwise why each pair cannot block; what was forced together.
-3. Shared resources and lease order; deploy plan.
+3. Shared resources, lease order with estimated starts; deploy plan.
+3b. Product-rule walkthrough (user states × what they can still do) and gaps found.
 4. Merge order and the final integration check (after merges, never first proof).
 5. Open questions for the user (ordered, with recommendation + unblocks).
-6. One-paragraph brief per milestone (scope, done, never-touch).
+6. One-paragraph brief per milestone (scope, done, never-touch) + its backlog.
 7. Risks and unverified assumptions. Critical files list.
