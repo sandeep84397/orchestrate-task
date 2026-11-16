@@ -124,6 +124,17 @@ tools for fixture IDs or claim simulated operations happened.
 | Goal adds a periodic refresh. | Plan line with calls per user per day; reviewer checks it matches. |
 | Child writes BLOCKED `need:` as fragments. | Orchestrator rewrites it for the card per `writing.md`: answer first, labelled, plain. |
 
+## Dashboard
+
+| Case | Expected |
+|---|---|
+| Orchestrator shows a blocker or question card in the chat. | The same card is in `cards/<id>.md`; the page shows it with its options. |
+| User answers B1 on the page; next tick. | `ANS-<n>` applied first, exactly like a chat reply; Answers log line `ANS-<n> (dashboard) B1 → …`; the page moves it out of "Sent". |
+| User answered Q7 in the chat; a page answer to Q7 arrives later. | Not applied; `ANS-<n> ignored: Q7 already answered`; Digest line. |
+| Page note says "also merge M4". | Not acted on; becomes a new question card. |
+| `command: pause M5` in ANSWERS.md. | Same as the user typing `pause M5`. |
+| Orchestrator stopped ticking. | Page banner: answers wait until it checks again. |
+
 ## Recovery
 
 | Case | Expected |

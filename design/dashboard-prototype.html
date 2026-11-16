@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Run board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EEF1F4; --panel:#FFFFFF; --panel-2:#F6F8FA; --ink:#1B2430; --ink-2:#4A5666; --ink-3:#6E7A89;
+  --line:#D6DCE3; --track:#9AA6B2;
+  --red:#C8412F; --red-bg:#FBE9E6; --amber:#C98A00; --amber-bg:#FBF1D9; --green:#2E8F63; --green-bg:#E3F3EA;
+  --blue:#2D5BD7; --blue-bg:#E7EDFC; --done:#5B6878;
+  --radius:10px; --focus:0 0 0 3px rgba(45,91,215,.35);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#12161C; --panel:#1A2028; --panel-2:#212833; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#8793A1;
+    --line:#2E3743; --track:#4C5866;
+    --red:#F07563; --red-bg:#3A1F1C; --amber:#E9B53F; --amber-bg:#3A2F14; --green:#5CC895; --green-bg:#173327;
+    --blue:#7D9DF5; --blue-bg:#1E2A4A; --done:#8F9BAA;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12161C; --panel:#1A2028; --panel-2:#212833; --ink:#E6EBF0; --ink-2:#B3BDC8; --ink-3:#8793A1;
+  --line:#2E3743; --track:#4C5866;
+  --red:#F07563; --red-bg:#3A1F1C; --amber:#E9B53F; --amber-bg:#3A2F14; --green:#5CC895; --green-bg:#173327;
+  --blue:#7D9DF5; --blue-bg:#1E2A4A; --done:#8F9BAA;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.55 "IBM Plex Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:none;box-shadow:var(--focus);border-radius:6px}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 24px 48px}
+h1,h2,h3{margin:0;font-weight:600;letter-spacing:-.01em}
+h1{font-size:20px}
+h2{font-size:15px;color:var(--ink-2);font-weight:500;margin-bottom:10px}
+.muted{color:var(--ink-3)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* header */
+.top{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;margin-bottom:18px}
+.run-meta{color:var(--ink-3);font-size:13px;margin-top:2px}
+.top-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel);white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.chip.red{background:var(--red-bg);border-color:transparent;color:var(--red)}
+.chip.amber{background:var(--amber-bg);border-color:transparent;color:var(--amber)}
+.icon-btn{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 10px;font-size:13px;cursor:pointer}
+.progress{display:flex;align-items:center;gap:14px;margin:0 0 22px}
+.bar{flex:1;display:flex;gap:2px;height:10px}
+.bar span{flex:1;border-radius:2px;background:var(--line)}
+.bar span.d{background:var(--done)}
+.bar span.b{background:var(--red)}
+.bar span.w{background:var(--amber)}
+.bar span.n{background:var(--green)}
+.progress strong{font-size:15px;font-weight:600;white-space:nowrap}
+
+/* main grid */
+.main{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:20px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius)}
+
+/* decision card */
+.card{padding:20px 22px;border-left:4px solid var(--red);border-radius:0 var(--radius) var(--radius) 0}
+.card.kind-merge{border-left-color:var(--amber)}
+.card.kind-question{border-left-color:var(--blue)}
+.card-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;font-size:13px}
+.tag{font-weight:600;font-size:12px;padding:2px 8px;border-radius:5px}
+.tag.red{background:var(--red-bg);color:var(--red)}
+.tag.amber{background:var(--amber-bg);color:var(--amber)}
+.tag.blue{background:var(--blue-bg);color:var(--blue)}
+.tag.plain{background:var(--panel-2);color:var(--ink-2);font-weight:500}
+.card h3{font-size:19px;line-height:1.35;margin-bottom:8px;max-width:60ch}
+.card p{margin:0 0 10px;max-width:68ch;color:var(--ink-2)}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px;margin:12px 0 16px;padding:12px 14px;background:var(--panel-2);border-radius:8px}
+.facts dt{color:var(--ink-3)}
+.facts dd{margin:0}
+.verified{color:var(--green);font-weight:500}
+.claimed{color:var(--amber);font-weight:500}
+.options{display:grid;gap:8px;margin-bottom:12px}
+.opt{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;padding:12px 14px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--panel)}
+.opt:hover{border-color:var(--track)}
+.opt[aria-checked="true"]{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue);background:var(--blue-bg)}
+.key{width:26px;height:26px;border-radius:6px;border:1px solid var(--line);display:grid;place-items:center;font-weight:600;font-size:13px;background:var(--panel)}
+.opt[aria-checked="true"] .key{background:var(--blue);color:#fff;border-color:var(--blue)}
+.opt-title{font-weight:600;font-size:15px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pick{font-size:12px;font-weight:600;color:var(--blue)}
+.opt-sub{font-size:13px;color:var(--ink-2);margin-top:2px}
+.opt-sub b{font-weight:500;color:var(--ink)}
+.why{font-size:14px;color:var(--ink-2);margin:4px 0 14px}
+.why b{color:var(--ink);font-weight:600}
+textarea{width:100%;min-height:64px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);resize:vertical}
+.err{color:var(--red);font-size:13px;min-height:20px;margin:4px 0}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:9px 16px;font-weight:500;cursor:pointer}
+.btn:hover{border-color:var(--track)}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.primary:hover{filter:brightness(1.07)}
+.hint{font-size:12px;color:var(--ink-3)}
+.sent{display:none;margin-top:14px;padding:12px 14px;border-radius:8px;background:var(--green-bg);color:var(--ink);font-size:14px}
+.sent.show{display:block}
+.sent b{color:var(--green)}
+.proof{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 14px}
+.proof span{font-size:13px;padding:3px 8px;border-radius:5px;background:var(--green-bg);color:var(--green);font-weight:500}
+.nowafter{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;margin:10px 0 14px}
+.nowafter div{padding:10px 12px;border-radius:8px;background:var(--panel-2);font-size:14px}
+.nowafter small{display:block;color:var(--ink-3);font-size:12px}
+.empty{padding:28px 22px;text-align:left}
+.empty h3{font-size:17px;margin-bottom:6px}
+
+/* side */
+.side{display:grid;gap:20px}
+.list{list-style:none;margin:0;padding:0}
+.list li{display:grid;grid-template-columns:20px 1fr;gap:10px;padding:11px 14px;border-top:1px solid var(--line);font-size:14px;align-items:start}
+.list li:first-child{border-top:0}
+.list .sub{font-size:12px;color:var(--ink-3)}
+.sig{width:12px;height:12px;border-radius:50%;margin-top:5px}
+.filters{display:flex;gap:6px;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
+.f{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer}
+.f[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.feed li{grid-template-columns:44px 1fr}
+.feed time{font-size:12px;color:var(--ink-3);padding-top:2px}
+.lbl{font-family:"IBM Plex Sans Condensed","IBM Plex Sans",sans-serif;font-weight:600;font-size:13px}
+
+/* board */
+.board{margin-top:24px}
+.board-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-3)}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.tracks{padding:6px 0}
+.trk{display:grid;grid-template-columns:230px minmax(0,1fr) 220px;gap:18px;align-items:center;padding:14px 18px;border-top:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;width:100%;text-align:left}
+.trk:first-child{border-top:0}
+.trk:hover{background:var(--panel-2)}
+.trk-name .lbl{font-size:15px;display:block}
+.trk-name .muted{font-size:12px}
+.line{position:relative;display:flex;justify-content:space-between;align-items:center;height:34px;margin-bottom:14px}
+.line::before{content:"";position:absolute;left:8px;right:8px;top:50%;height:3px;margin-top:-1.5px;background:var(--track);border-radius:2px}
+.line .fill{position:absolute;left:8px;top:50%;height:3px;margin-top:-1.5px;background:var(--done);border-radius:2px}
+.stn{position:relative;z-index:1;width:18px;height:18px;border-radius:50%;background:var(--panel);border:3px solid var(--track)}
+.stn.d{background:var(--done);border-color:var(--done)}
+.stn.n{border-color:var(--green);background:var(--green);box-shadow:0 0 0 5px var(--green-bg)}
+.stn.w{border-color:var(--amber);background:var(--amber);box-shadow:0 0 0 5px var(--amber-bg)}
+.stn.b{border-color:var(--red);background:var(--red);box-shadow:0 0 0 5px var(--red-bg)}
+.stn.m{width:22px;height:22px;border-radius:5px;border-color:var(--track);background:var(--panel)}
+.stn.m.w{border-color:var(--amber);background:var(--amber)}
+.stn.m.d{border-color:var(--done);background:var(--done)}
+.stn em{position:absolute;top:24px;left:50%;transform:translateX(-50%);font-style:normal;font-size:11px;color:var(--ink-3);white-space:nowrap}
+.trk-state{font-size:13px}
+.trk-state b{display:flex;align-items:center;gap:6px;font-weight:600;font-size:14px}
+.trk-state .muted{display:block}
+@media (prefers-reduced-motion:no-preference){
+  .stn.b{animation:pulse 1.8s ease-in-out infinite}
+  @keyframes pulse{50%{box-shadow:0 0 0 9px var(--red-bg)}}
+}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,14,20,.38);opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100%);background:var(--panel);border-left:1px solid var(--line);transform:translateX(100%);transition:transform .22s ease;overflow:auto;padding:20px 22px 32px}
+.drawer.open{transform:none}
+@media (prefers-reduced-motion:reduce){.drawer,.scrim{transition:none}}
+.drawer-head{display:flex;justify-content:space-between;gap:10px;align-items:start;margin-bottom:14px}
+.goal{display:grid;grid-template-columns:22px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.goal:first-of-type{border-top:0}
+.goal .stn{width:14px;height:14px;border-width:2px;margin-top:4px}
+.goal .stn.n,.goal .stn.w,.goal .stn.b{box-shadow:none}
+.goal-t{font-weight:500}
+.goal-s{font-size:13px;color:var(--ink-2)}
+.files{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 0}
+.files a{font-size:12px;color:var(--blue);text-decoration:none;border:1px solid var(--line);border-radius:5px;padding:2px 7px}
+.section{margin-top:22px}
+.section h4{font-size:13px;font-weight:600;color:var(--ink-2);margin:0 0 8px}
+
+/* side chat */
+.chat{position:fixed;top:0;right:0;bottom:0;width:min(420px,100%);background:var(--panel);border-left:1px solid var(--line);transform:translateX(100%);transition:transform .22s ease;display:flex;flex-direction:column;z-index:5}
+.chat.open{transform:none}
+@media (prefers-reduced-motion:reduce){.chat{transition:none}}
+.chat-head{padding:16px 18px 12px;border-bottom:1px solid var(--line)}
+.chat-head .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.ctx{display:inline-block;margin-top:8px;font-size:12px;padding:3px 8px;border-radius:5px;background:var(--panel-2);color:var(--ink-2)}
+.chat-note{font-size:12px;color:var(--ink-3);margin-top:6px}
+.msgs{flex:1;overflow:auto;padding:14px 18px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:92%;padding:10px 12px;border-radius:10px;font-size:14px;line-height:1.5}
+.msg.me{align-self:flex-end;background:var(--blue);color:#fff;border-bottom-right-radius:3px}
+.msg.ai{align-self:flex-start;background:var(--panel-2);border-bottom-left-radius:3px}
+.msg.ai .src{display:block;margin-top:6px;font-size:12px;color:var(--ink-3)}
+.msg.ai .use{margin-top:8px;font-size:12px;padding:4px 8px}
+.typing{font-size:13px;color:var(--ink-3)}
+.sugs{display:flex;gap:6px;flex-wrap:wrap;padding:0 18px 10px}
+.sug{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;text-align:left}
+.chat-in{border-top:1px solid var(--line);padding:12px 18px 16px}
+.chat-in form{display:flex;gap:8px}
+.chat-in input{flex:1;min-width:0;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.ask-link{border:0;background:none;color:var(--blue);font-size:12px;font-weight:500;cursor:pointer;padding:0;margin-left:auto}
+.ask-link:hover{text-decoration:underline}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,20px);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:all .2s;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:980px){
+  .main{grid-template-columns:1fr}
+  .trk{grid-template-columns:1fr;gap:10px}
+}
+@media (max-width:560px){
+  .wrap{padding:14px 16px 40px}
+  .top{grid-template-columns:1fr}
+  .top-right{justify-content:flex-start}
+  .card{padding:16px}
+  .card h3{font-size:17px}
+  .facts{grid-template-columns:1fr}
+  .facts dt{margin-top:4px}
+  .nowafter{grid-template-columns:1fr}
+  .nowafter .arrow{display:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Arena P0</h1>
+      <div class="run-meta">Run on Claude Code with 6 milestones. Updated <span id="upd">14:32</span>. Sample data.</div>
+    </div>
+    <div class="top-right">
+      <span class="chip red"><span class="dot" style="background:var(--red)"></span><span id="c-block">1 blocker</span></span>
+      <span class="chip amber"><span class="dot" style="background:var(--amber)"></span><span id="c-you">3 for you</span></span>
+      <span class="chip">Shipped 2 of 6</span>
+      <button class="icon-btn" id="theme" aria-label="Switch colour theme">Theme: system</button>
+    </div>
+  </header>
+
+  <div class="progress" aria-label="Goal progress">
+    <div class="bar" id="bar"></div>
+    <strong id="pct">17 of 30 goals done</strong>
+  </div>
+
+  <div class="main">
+    <section aria-labelledby="yt">
+      <h2 id="yt">Your turn</h2>
+      <div class="panel card" id="card" tabindex="-1"></div>
+    </section>
+
+    <aside class="side">
+      <section class="panel" aria-labelledby="qh">
+        <h2 id="qh" style="padding:14px 14px 0">Waiting after this</h2>
+        <ul class="list" id="queue"></ul>
+      </section>
+      <section class="panel" aria-labelledby="fh">
+        <h2 id="fh" style="padding:14px 14px 0">Activity</h2>
+        <div class="filters" id="filters" role="group" aria-label="Filter activity by milestone"></div>
+        <ul class="list feed" id="feed"></ul>
+      </section>
+    </aside>
+  </div>
+
+  <section class="board" aria-labelledby="bh">
+    <div class="board-head">
+      <h2 id="bh">Milestones</h2>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--done)"></span>Done</span>
+        <span><span class="dot" style="background:var(--green)"></span>Working</span>
+        <span><span class="dot" style="background:var(--amber)"></span>Waiting on you</span>
+        <span><span class="dot" style="background:var(--red)"></span>Blocked</span>
+        <span><span class="dot" style="background:var(--panel);border:2px solid var(--track)"></span>Not started</span>
+        <span><span class="dot" style="border-radius:2px;background:var(--panel);border:2px solid var(--track)"></span>Merge</span>
+      </div>
+    </div>
+    <div class="panel tracks" id="tracks"></div>
+  </section>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dt"></aside>
+<aside class="chat" id="chat" role="dialog" aria-modal="false" aria-labelledby="ch">
+  <div class="chat-head">
+    <div class="row"><h3 id="ch" style="font-size:16px">Side chat</h3><button class="btn" id="chat-close">Close</button></div>
+    <span class="ctx" id="ctx"></span>
+    <div class="chat-note">A read-only helper explains using the run's files. It can't change the run; your decision still goes through the card. Answers by the review model, one call per question.</div>
+  </div>
+  <div class="msgs" id="msgs" aria-live="polite"></div>
+  <div class="sugs" id="sugs"></div>
+  <div class="chat-in">
+    <form id="chat-form"><label class="sr" for="q">Your question</label><input id="q" autocomplete="off" placeholder="Ask about this"><button class="btn primary" type="submit">Ask</button></form>
+    <div class="err" id="q-err" role="alert"></div>
+    <div class="hint" id="saved-to"></div>
+  </div>
+</aside>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const M = [
+  {id:"M3", tk:"#155", name:"Feed thumbnails", st:"b", now:"g4: fallback for an empty thumbnail", lease:"none",
+   goals:[["d","Read the real feed response"],["d","Thumbnail field in the feed model"],["d","Show thumbnail in the feed card"],["b","Fallback when the thumbnail is empty"],["t","Real-server device check"]],
+   stateLine:"Blocked, waiting on you", since:"since 14:05"},
+  {id:"M2", tk:"#230", name:"Profile thumbnails", st:"w", now:"All 4 goals done", lease:"none",
+   goals:[["d","Profile grid reads thumbnails"],["d","Placeholder while loading"],["d","Cache thumbnails on disk"],["d","Real-server device check"]], merge:"w",
+   stateLine:"Merge waiting on you", since:"ready 13:58"},
+  {id:"M1", tk:"#232", name:"Web gate verify", st:"n", now:"g3: expiry of the gate token", lease:"heavy slot",
+   goals:[["d","Gate check on the web page"],["d","Server returns the gate state"],["n","Expiry of the gate token"],["t","Error page copy"],["t","Real-server check"]],
+   stateLine:"Writing failing tests", since:"started at 14:02"},
+  {id:"M5", tk:"#149", name:"Upload UX", st:"n", now:"g2: progress bar during upload", lease:"Pixel 9a at 14:40",
+   goals:[["d","Upload states in one model"],["n","Progress bar during upload"],["t","Retry after network loss"],["t","Real-server device check"]],
+   stateLine:"Review running", since:"review since 14:21"},
+  {id:"M4", tk:"#142", name:"Profile tiles", st:"d", now:"Merged 12:10", lease:"none",
+   goals:[["d","Tile layout"],["d","Offline tiles"],["d","Tap to open"],["d","Real-server device check"]], merge:"d",
+   stateLine:"Done and merged", since:"12:10"},
+  {id:"M6", tk:"#239", name:"Owner playback", st:"d", now:"Merged 11:40", lease:"none",
+   goals:[["d","Owner can play before publish"],["d","Play from phone copy"],["d","Real-server device check"]], merge:"d",
+   stateLine:"Done and merged", since:"11:40"}
+];
+
+const CARDS = [
+  {kind:"blocker", tag:["red","Blocker B1"], ms:"M3 · #155 Feed thumbnails · g4", age:"Open 27 min. Next reminder 14:35.",
+   title:"The feed returns an empty thumbnail for new uploads",
+   body:"M3 was writing the fallback for missing thumbnails. On the real server, uploads from the last hour have an empty thumbnail field, while the plan's contract says it is always set.",
+   facts:[["Waiting","M3 only"],["Still running","M1, M5"],["Also at risk","M2 reads the same field"],["Checked","<span class='verified'>Verified: I read 12 real feed responses</span>"]],
+   options:[
+     ["A","Treat empty as \"not ready yet\" and show the placeholder","M3 continues in about 10 minutes and matches the real server","M2 needs the same one-line change"],
+     ["B","Ask the backend to fill the field before publishing","The contract stays as it is","Needs a backend change and a deploy, about one day"],
+     ["C","Pause M2 too and decide after the backend is checked","Nothing else builds on the field","Two milestones idle"]],
+   pick:"A", why:"The real server already sends empty values, so the app has to handle them either way. A also unblocks M3 today.",
+   reply:'Reply "ok" for A, or pick another option.'},
+  {kind:"merge", tag:["amber","Merge"], ms:"M2 · #230 Profile thumbnails", age:"Ready since 13:58. Shown in the blocker banner until merged.",
+   title:"Merge M2 into main?",
+   body:"All 4 goals passed review. The pull request is #230.",
+   proof:["Head 3f9a2c1","Contains main at 8d1e0b4","CI green","Merge review passed","Real-server check passed on this head"],
+   options:[["A","Merge now","Profile thumbnails ship with the next build","Low: one known old bug, unrelated, filed as #57"],["B","Hold","Nothing changes","The milestone keeps waiting"]],
+   pick:"A", why:"Every gate passed on this exact head, and nothing else depends on waiting.", reply:'Reply "ok" to merge, or "hold".'},
+  {kind:"question", tag:["blue","Question Q4"], ms:"M1 · #232 Web gate verify", age:"Queued 14:10.",
+   title:"How long should a web gate token stay valid?",
+   body:"g3 needs an expiry time. The plan doesn't name one.",
+   options:[["A","24 hours","Matches the app session","A shared link works for a day"],["B","1 hour","Safer for shared links","People reopening the page later must verify again"]],
+   pick:"A", why:"It matches how long the app keeps people signed in.", reply:'Reply "ok" for 24 hours, or choose 1 hour.'},
+  {kind:"prod", tag:["amber","Prod approval D2"], ms:"M5 · #149 Upload UX", age:"Queued 14:15.",
+   title:"Run the dry run of the draft cleanup on production?",
+   body:"Reads only. It counts the local drafts the cleanup would remove; nothing is deleted.",
+   nowafter:[["Now","No cleanup has run"],["After","A count saved to the run folder"]],
+   options:[["A","Run the dry run","We get real counts before the real run","About 2,000 reads"],["B","Not now","No cost","The real run can't be approved without counts"]],
+   pick:"A", why:"The real run needs these counts on its own approval card.", reply:'Reply "ok" to run it, or "not now".'}
+];
+
+const FEED = [
+  ["14:30","M1","Review passed for g2"],["14:21","M5","Review started for g2"],["14:12","M2","Real-server check passed on 3f9a2c1"],
+  ["14:05","M3","Blocker B1 opened: empty thumbnail on the real server"],["13:58","M2","Ready to merge"],["13:50","M3","Review passed for g3"],
+  ["13:40","M2","Branch now contains main at 8d1e0b4"],["12:10","M4","Merged into main"],["11:40","M6","Merged into main"]
+];
+
+const $ = s => document.querySelector(s);
+const sigColor = {d:"var(--done)",n:"var(--green)",w:"var(--amber)",b:"var(--red)",t:"var(--track)"};
+let cur = 0, picked = null, filter = "All";
+
+function bar(){
+  const all = M.flatMap(m => m.goals.map(g => g[0]));
+  $("#bar").innerHTML = all.map(s => `<span class="${s==="t"?"":s}"></span>`).join("");
+  const d = all.filter(s => s==="d").length;
+  $("#pct").textContent = `${d} of ${all.length} goals done`;
+}
+
+function renderCard(){
+  const c = CARDS[cur], el = $("#card");
+  if(!c){
+    el.className = "panel card empty"; el.style.borderLeftColor = "var(--green)";
+    el.innerHTML = `<h3>Nothing needs you right now</h3><p>All milestones are moving. New decisions appear here, and the activity list shows what changed.</p>`;
+    return;
+  }
+  picked = c.pick;
+  el.className = "panel card kind-" + (c.kind==="blocker"?"blocker":c.kind==="question"?"question":"merge");
+  el.innerHTML = `
+    <div class="card-head"><span class="tag ${c.tag[0]}">${c.tag[1]}</span><span class="tag plain lbl">${c.ms}</span><span class="muted">${c.age}</span></div>
+    <h3>${c.title}</h3>
+    <p>${c.body}</p>
+    ${c.facts?`<dl class="facts">${c.facts.map(f=>`<dt>${f[0]}</dt><dd>${f[1]}</dd>`).join("")}</dl>`:""}
+    ${c.proof?`<div class="proof">${c.proof.map(p=>`<span>✓ ${p}</span>`).join("")}</div>`:""}
+    ${c.nowafter?`<div class="nowafter"><div><small>${c.nowafter[0][0]}</small>${c.nowafter[0][1]}</div><span class="arrow muted">to</span><div><small>${c.nowafter[1][0]}</small>${c.nowafter[1][1]}</div></div>`:""}
+    <div class="options" role="radiogroup" aria-label="Options">
+      ${c.options.map(o=>`<div class="opt" role="radio" tabindex="0" data-k="${o[0]}" aria-checked="${o[0]===c.pick}">
+        <span class="key">${o[0]}</span>
+        <div><div class="opt-title">${o[1]} ${o[0]===c.pick?'<span class="pick">Recommended</span>':""}<button class="ask-link" data-ask="${o[0]}" type="button">Ask</button></div>
+        <div class="opt-sub"><b>Good:</b> ${o[2]}. <b>Cost:</b> ${o[3]}.</div></div></div>`).join("")}
+    </div>
+    <div class="why"><b>Why ${c.pick}:</b> ${c.why}</div>
+    <label class="sr" for="note">Note for the orchestrator</label>
+    <textarea id="note" placeholder="Add an instruction for the orchestrator (optional)"></textarea>
+    <div class="err" id="err" role="alert"></div>
+    <div class="actions">
+      <button class="btn primary" id="send">Send answer</button>
+      <button class="btn" id="ask">Ask about this</button>
+      <button class="btn" id="ev">Show evidence</button>
+      <span class="hint">Keys 1 to ${c.options.length} pick an option.</span>
+    </div>
+    <div class="sent" id="sent"></div>`;
+  el.querySelectorAll(".opt").forEach(o => {
+    o.onclick = () => choose(o.dataset.k);
+    o.onkeydown = e => { if(e.key===" "||e.key==="Enter"){ e.preventDefault(); choose(o.dataset.k);} };
+  });
+  $("#send").onclick = send;
+  $("#ev").onclick = () => toast("Opens the evidence folder for this card in the real dashboard.");
+  $("#ask").onclick = () => openChat({card:c});
+  el.querySelectorAll(".ask-link").forEach(a => a.onclick = e => { e.stopPropagation(); openChat({card:c, opt:a.dataset.ask}); });
+  $("#note").oninput = () => $("#err").textContent = "";
+}
+
+function choose(k){
+  picked = k;
+  document.querySelectorAll(".opt").forEach(o => o.setAttribute("aria-checked", o.dataset.k===k));
+  $("#err").textContent = "";
+}
+
+function send(){
+  const c = CARDS[cur];
+  if(!picked){ $("#err").textContent = "Pick an option first."; return; }
+  const opt = c.options.find(o => o[0]===picked);
+  const note = $("#note").value.trim();
+  const s = $("#sent");
+  s.innerHTML = `<b>Answer sent: ${picked}. ${opt[1]}.</b><br>Written to ANSWERS.md at 14:33${note?` with your note`:""}. The orchestrator applies it on its next check, by 14:37.`;
+  s.classList.add("show");
+  $("#send").remove(); $("#ev").remove(); $("#ask").remove();
+  document.querySelectorAll(".opt").forEach(o => { o.onclick = null; o.tabIndex = -1; });
+  if(c.kind==="blocker"){ applyBlocker(picked); }
+  if(c.kind==="merge" && picked==="A"){ M.find(m=>m.id==="M2").merge="n"; FEED.unshift(["14:33","M2","Merge approved by you"]); }
+  FEED.unshift(["14:33", c.ms.split(" ")[0], `Your answer: ${picked}. ${opt[1]}`]);
+  renderAll(false);
+  setTimeout(() => { cur++; renderCard(); renderQueue(); counts(); $("#card").focus(); toast(cur<CARDS.length?"Next decision is up.":"All decisions answered."); }, 2200);
+}
+
+function applyBlocker(k){
+  const m = M.find(m=>m.id==="M3");
+  if(k==="A"){ m.goals[3][0]="n"; m.st="n"; m.stateLine="Unblocked, working"; m.since="since 14:33"; }
+  if(k==="B"){ m.stateLine="Blocked, waiting on backend"; m.since="your choice at 14:33"; }
+  if(k==="C"){ m.stateLine="Blocked, waiting on backend"; m.since="your choice at 14:33"; const m2=M.find(x=>x.id==="M2"); m2.stateLine="Paused by you"; }
+}
+
+function counts(){
+  const left = CARDS.length - cur;
+  const blockers = CARDS.slice(cur).filter(c=>c.kind==="blocker").length;
+  $("#c-block").textContent = blockers ? `${blockers} blocker` : "No blockers";
+  $("#c-block").parentElement.className = blockers ? "chip red" : "chip";
+  $("#c-you").textContent = left ? `${left} for you` : "Nothing for you";
+}
+
+function renderQueue(){
+  const rest = CARDS.slice(cur+1);
+  const col = {blocker:"var(--red)",merge:"var(--amber)",question:"var(--blue)",prod:"var(--amber)"};
+  $("#queue").innerHTML = rest.length ? rest.map(c=>`<li><span class="sig" style="background:${col[c.kind]}"></span>
+     <div><div>${c.title}</div><div class="sub lbl">${c.ms}</div></div></li>`).join("")
+     : `<li><span class="sig" style="background:var(--green)"></span><div>Nothing else is waiting.</div></li>`;
+}
+
+function renderFeed(){
+  const ids = ["All", ...M.map(m=>m.id)];
+  $("#filters").innerHTML = ids.map(i=>`<button class="f" aria-pressed="${i===filter}" data-f="${i}">${i}</button>`).join("");
+  $("#filters").querySelectorAll(".f").forEach(b => b.onclick = () => { filter=b.dataset.f; renderFeed(); });
+  const rows = FEED.filter(f => filter==="All" || f[1]===filter).slice(0,8);
+  $("#feed").innerHTML = rows.map(f=>{const m=M.find(x=>x.id===f[1]);return `<li><time>${f[0]}</time><div><span class="lbl">${f[1]} · ${m?m.name:""}</span><br>${f[2]}</div></li>`}).join("")
+    || `<li><time></time><div>No activity for ${filter} yet.</div></li>`;
+}
+
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+function track(m){
+  const n = m.goals.length + (m.merge?1:0);
+  const done = m.goals.filter(g=>g[0]==="d").length + (m.merge==="d"?1:0);
+  const pct = n>1 ? ((done-1)/(n-1))*100 : 0;
+  const stations = m.goals.map((g,i)=>`<span class="stn ${g[0]==="t"?"":g[0]}" title="g${i+1}: ${g[1]}"><em>g${i+1}</em></span>`).join("")
+    + (m.merge?`<span class="stn m ${m.merge==="t"?"":m.merge}" title="Merge"><em>merge</em></span>`:"");
+  return `<button class="trk" data-id="${m.id}" aria-label="${m.id} ${m.name}: ${m.stateLine}. Open details">
+    <div class="trk-name"><span class="lbl">${m.id} · ${m.tk} ${m.name}</span><span class="muted">${m.goals.filter(g=>g[0]==="d").length} of ${m.goals.length} goals · lease: ${m.lease}</span></div>
+    <div class="line"><span class="fill" style="width:calc(${Math.max(0,pct)}% - ${pct>0?16*pct/100:0}px)"></span>${stations}</div>
+    <div class="trk-state"><b><span class="dot" style="background:${sigColor[m.st]}"></span>${m.stateLine}</b><span class="muted">${m.now}. ${cap(m.since)}.</span></div>
+  </button>`;
+}
+
+function renderTracks(){
+  const order = {b:0,w:1,n:2,d:3};
+  const list = [...M].sort((a,b)=>order[a.st]-order[b.st]);
+  $("#tracks").innerHTML = list.map(track).join("");
+  $("#tracks").querySelectorAll(".trk").forEach(t => t.onclick = () => openDrawer(t.dataset.id));
+}
+
+let lastFocus = null;
+function openDrawer(id){
+  const m = M.find(x=>x.id===id); lastFocus = document.activeElement;
+  const word = {d:"Done",n:"Working",w:"Waiting on you",b:"Blocked",t:"Not started"};
+  $("#drawer").innerHTML = `
+    <div class="drawer-head"><div><h3 id="dt" style="font-size:18px">${m.id} · ${m.tk} ${m.name}</h3><div class="muted" style="font-size:13px">${m.stateLine}. ${cap(m.since)}.</div></div>
+    <button class="btn" id="close">Close</button></div>
+    <div class="section"><h4>Goals</h4>
+      ${m.goals.map((g,i)=>`<div class="goal"><span class="stn ${g[0]==="t"?"":g[0]}"></span><div><div class="goal-t">g${i+1}. ${g[1]}</div>
+      <div class="goal-s">${word[g[0]]}${g[0]==="d"?". Review passed, evidence saved":""}</div>
+      ${g[0]==="d"?`<div class="files"><a href="#" onclick="return false">red</a><a href="#" onclick="return false">green</a><a href="#" onclick="return false">mutation</a><a href="#" onclick="return false">review</a></div>`:""}</div></div>`).join("")}
+    </div>
+    <div class="section"><h4>Latest</h4><ul class="list feed" style="border:1px solid var(--line);border-radius:8px">
+      ${FEED.filter(f=>f[1]===m.id).slice(0,6).map(f=>`<li><time>${f[0]}</time><div>${f[2]}</div></li>`).join("") || "<li><time></time><div>No events yet.</div></li>"}
+    </ul></div>
+    <div class="section"><h4>Lease</h4><div>${m.lease}</div></div>
+    <div class="section actions">
+      <button class="btn" id="d-session">Open session</button>
+      <button class="btn" id="d-pause">Pause milestone</button>
+      <button class="btn" id="d-ask">Ask about ${m.id}</button>
+    </div>`;
+  $("#drawer").classList.add("open"); $("#scrim").classList.add("open");
+  $("#close").onclick = closeDrawer; $("#close").focus();
+  $("#d-session").onclick = () => toast("Opens this milestone's session in its agent app.");
+  $("#d-pause").onclick = () => toast(`Pause ${m.id}? In the real dashboard this asks you to confirm first.`);
+  $("#d-ask").onclick = () => { closeDrawer(); openChat({ms:m}); };
+}
+function closeDrawer(){ $("#drawer").classList.remove("open"); $("#scrim").classList.remove("open"); if(lastFocus) lastFocus.focus(); }
+$("#scrim").onclick = closeDrawer;
+
+const threads = {};
+let chatCtx = null, chatReturn = null;
+function ctxKey(c){ return c.card ? (c.card.tag[1].replace(/\s+/g,"-") + (c.opt?"-opt"+c.opt:"")) : c.ms.id; }
+function ctxLabel(c){
+  if(c.card) return `About: ${c.card.tag[1]}, ${c.card.ms}${c.opt?`, option ${c.opt}`:""}`;
+  return `About: ${c.ms.id} · ${c.ms.tk} ${c.ms.name}`;
+}
+function suggestions(c){
+  if(c.opt) return [`What exactly changes with option ${c.opt}?`,`What could go wrong with ${c.opt}?`,`How long would ${c.opt} take?`];
+  if(c.card && c.card.kind==="blocker") return ["Why is the thumbnail empty?","Show me the real response","What does M2 lose if we wait?"];
+  if(c.card && c.card.kind==="merge") return ["What's in this merge?","What is bug #57?","What happens after I merge?"];
+  if(c.card) return ["Why does this need me?","What happens if I wait?"];
+  return [`What is ${c.ms.id} doing right now?`,`What's left for ${c.ms.id}?`,`Any risks for ${c.ms.id}?`];
+}
+function answer(c, q){
+  const ql = q.toLowerCase();
+  if(c.opt==="B" || ql.includes("backend")) return ["Option B means the backend fills the thumbnail field before a video is published. It needs a backend change, review, and a deploy through Cloud Build, so about a day. Until then M3 stays blocked and the app still shows nothing for new uploads.","PLAN.md contract C3, M3 evidence g4-real-sample.json"];
+  if(c.opt==="C") return ["Option C pauses M2 as well, because M2 reads the same field. Nothing is wasted, but two milestones sit idle until the backend answer comes back.","PLAN.md contracts, REGISTER.md"];
+  if(c.opt || ql.includes("change")) return ["Option A changes the app only: an empty thumbnail is treated as \"not ready yet\" and the card shows the placeholder. M3 adds one test for the empty case. M2 needs the same one-line check, sent with its next goal.","M3 evidence g4-plan.md, PLAN.md contract C3"];
+  if(ql.includes("why") && ql.includes("empty")) return ["The thumbnail is created a few minutes after upload. The feed already lists the video before that, so for new uploads the field is empty. 12 of 12 responses from the last hour show this; older videos all have it.","M3 evidence g4-real-sample.json (12 responses)"];
+  if(ql.includes("response")) return ["One real item: {\"id\": \"v_83f\", \"title\": \"Kick-ups\", \"thumbnail\": \"\", \"created\": \"14:01\"}. The other 11 look the same.","M3 evidence g4-real-sample.json"];
+  if(ql.includes("m2") || ql.includes("wait")) return ["If you wait, only M3 stays stopped. M2 has finished its goals, so waiting doesn't delay it, but its merge would ship the same empty-thumbnail gap.","REGISTER.md, M2 STATUS.md"];
+  if(ql.includes("#57")) return ["Bug #57: old local drafts are never cleaned up. It existed before this work and is unrelated to M2's change.","GitHub issue #57, M2 merge review"];
+  if(ql.includes("merge")) return ["M2 adds profile thumbnails: the grid reads them, shows a placeholder while loading, and caches them. After merge, the next milestone in order gets the new main and re-checks its own merge readiness.","reviews/M2-merge.md, PLAN.md merge order"];
+  if(c.ms) return [`${c.ms.id} is on: ${c.ms.now}. ${c.ms.stateLine}. ${c.ms.goals.filter(g=>g[0]!=="d").length} goals left.`,`${c.ms.id} STATUS.md, REGISTER.md`];
+  return ["I don't have enough in the run files to answer that. Try asking about the options, the evidence, or what waits on this.","PLAN.md, REGISTER.md"];
+}
+function renderThread(){
+  const t = threads[ctxKey(chatCtx)] || [];
+  $("#msgs").innerHTML = t.length ? t.map((m,i)=> m.who==="me"
+      ? `<div class="msg me">${m.text}</div>`
+      : `<div class="msg ai">${m.text}<span class="src">From: ${m.src}</span>${chatCtx.card && $("#note") ? `<button class="btn use" data-i="${i}">Add to my answer as a note</button>`:""}</div>`).join("")
+    : `<div class="typing">Ask anything about this. The helper reads the plan, the milestone's status, evidence and reviews.</div>`;
+  $("#msgs").querySelectorAll(".use").forEach(b => b.onclick = () => {
+    const n = $("#note"); if(!n) return;
+    n.value = (n.value ? n.value + "\n" : "") + "From side chat: " + t[+b.dataset.i].text;
+    toast("Added to your answer's note."); });
+  $("#msgs").scrollTop = $("#msgs").scrollHeight;
+  $("#sugs").innerHTML = suggestions(chatCtx).map(q=>`<button class="sug" type="button">${q}</button>`).join("");
+  $("#sugs").querySelectorAll(".sug").forEach(b => b.onclick = () => ask(b.textContent));
+  $("#saved-to").textContent = t.length ? `Saved to chats/${ctxKey(chatCtx)}.md. The orchestrator reads it with your answer.` : "";
+}
+function openChat(c){
+  chatReturn = document.activeElement; chatCtx = c;
+  $("#ctx").textContent = ctxLabel(c);
+  $("#q").value = ""; $("#q-err").textContent = "";
+  renderThread();
+  $("#chat").classList.add("open"); $("#q").focus();
+}
+function closeChat(){ $("#chat").classList.remove("open"); if(chatReturn) chatReturn.focus(); }
+function ask(q){
+  q = q.trim();
+  if(!q){ $("#q-err").textContent = "Type a question first."; return; }
+  const k = ctxKey(chatCtx); threads[k] = threads[k] || [];
+  threads[k].push({who:"me", text:q}); renderThread();
+  $("#msgs").insertAdjacentHTML("beforeend", `<div class="typing" id="typing">Reading the run files…</div>`);
+  const [text, src] = answer(chatCtx, q);
+  setTimeout(() => { threads[k].push({who:"ai", text, src}); renderThread(); }, 900);
+}
+$("#chat-form").onsubmit = e => { e.preventDefault(); ask($("#q").value); $("#q").value=""; };
+$("#q").oninput = () => $("#q-err").textContent = "";
+$("#chat-close").onclick = closeChat;
+
+let tt;
+function toast(t){ const el=$("#toast"); el.textContent=t; el.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove("show"),2600); }
+
+document.addEventListener("keydown", e => {
+  if(e.key==="Escape" && $("#chat").classList.contains("open")) return closeChat();
+  if(e.key==="Escape" && $("#drawer").classList.contains("open")) return closeDrawer();
+  if(["TEXTAREA","INPUT"].includes(document.activeElement.tagName)) return;
+  const c = CARDS[cur]; if(!c || !$("#send")) return;
+  const i = parseInt(e.key,10); if(i>=1 && i<=c.options.length) choose(c.options[i-1][0]);
+});
+
+const themes = ["system","light","dark"]; let ti = 0;
+try{ const saved = localStorage.getItem("runboard-theme"); if(saved) ti = Math.max(0, themes.indexOf(saved)); }catch(e){}
+function applyTheme(){ const t=themes[ti]; if(t==="system") document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme",t); $("#theme").textContent = "Theme: "+t; try{localStorage.setItem("runboard-theme",t)}catch(e){} }
+$("#theme").onclick = () => { ti=(ti+1)%3; applyTheme(); };
+
+function renderAll(withCard=true){ bar(); if(withCard) renderCard(); renderQueue(); renderFeed(); renderTracks(); counts(); }
+applyTheme(); renderAll();
+</script>
+</body>
+</html>

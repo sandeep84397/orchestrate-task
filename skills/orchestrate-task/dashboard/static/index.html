@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Run board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1 id="title">Run board</h1>
+      <div class="run-meta" id="meta">Loading the run files…</div>
+    </div>
+    <div class="top-right">
+      <span class="chip" id="chip-block"><span class="dot" id="dot-block"></span><span id="c-block">No blockers</span></span>
+      <span class="chip" id="chip-you"><span class="dot" id="dot-you"></span><span id="c-you">Nothing for you</span></span>
+      <span class="chip" id="c-ship">Shipped 0 of 0</span>
+      <button class="icon-btn" id="theme" aria-label="Switch colour theme">Theme: system</button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" role="status"></div>
+
+  <div class="progress" aria-label="Goal progress">
+    <div class="bar" id="bar"></div>
+    <strong id="pct"></strong>
+  </div>
+
+  <div class="main">
+    <section aria-labelledby="yt">
+      <h2 id="yt">Your turn</h2>
+      <div class="notice" id="notice" role="status"></div>
+      <div class="panel card" id="card" tabindex="-1"><div class="skeleton">Reading the run files…</div></div>
+    </section>
+
+    <aside class="side">
+      <section class="panel" aria-labelledby="qh">
+        <h2 id="qh" style="padding:14px 14px 0">Waiting after this</h2>
+        <ul class="list" id="queue"></ul>
+      </section>
+      <section class="panel" id="sent-panel" aria-labelledby="sh" hidden>
+        <h2 id="sh" style="padding:14px 14px 0">Sent, waiting for the orchestrator</h2>
+        <ul class="list sent-list" id="sent"></ul>
+      </section>
+      <section class="panel" aria-labelledby="fh">
+        <h2 id="fh" style="padding:14px 14px 0">Activity</h2>
+        <div class="filters" id="filters" role="group" aria-label="Filter activity by milestone"></div>
+        <div class="feed-tools"><span id="feed-count"></span><label><input type="checkbox" id="show-silent"> Show bookkeeping</label></div>
+        <ul class="list feed" id="feed"></ul>
+      </section>
+    </aside>
+  </div>
+
+  <section class="board" aria-labelledby="bh">
+    <div class="board-head">
+      <h2 id="bh">Milestones</h2>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--done)"></span>Done</span>
+        <span><span class="dot" style="background:var(--green)"></span>Working</span>
+        <span><span class="dot" style="background:var(--amber)"></span>Waiting on you</span>
+        <span><span class="dot" style="background:var(--red)"></span>Blocked</span>
+        <span><span class="dot" style="background:var(--panel);border:2px solid var(--track)"></span>Not started</span>
+        <span><span class="dot" style="border-radius:2px;background:var(--panel);border:2px solid var(--track)"></span>Merge</span>
+      </div>
+    </div>
+    <div class="panel tracks" id="tracks"></div>
+  </section>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dt"></aside>
+<aside class="viewer" id="viewer" role="dialog" aria-modal="true" aria-labelledby="vt">
+  <div class="viewer-head"><h3 id="vt">Evidence</h3><button class="btn" id="viewer-close">Close</button></div>
+  <div class="viewer-body" id="viewer-body"></div>
+</aside>
+<aside class="chat" id="chat" role="dialog" aria-modal="false" aria-labelledby="ch">
+  <div class="chat-head">
+    <div class="row"><h3 id="ch" style="font-size:16px">Side chat</h3><button class="btn" id="chat-close">Close</button></div>
+    <span class="ctx" id="ctx"></span>
+    <div class="chat-note" id="chat-note"></div>
+  </div>
+  <div class="msgs" id="msgs" aria-live="polite"></div>
+  <div class="sugs" id="sugs"></div>
+  <div class="chat-in">
+    <form id="chat-form"><label class="sr" for="q">Your question</label><input id="q" autocomplete="off" placeholder="Ask about this"><button class="btn primary" type="submit" id="q-send">Ask</button></form>
+    <div class="err" id="q-err" role="alert"></div>
+    <div class="hint" id="saved-to"></div>
+  </div>
+</aside>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
