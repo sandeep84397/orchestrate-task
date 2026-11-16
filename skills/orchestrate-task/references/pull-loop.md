@@ -22,16 +22,20 @@ If the previous tick is still in progress, skip; the next trigger picks it up.
 ## Tick procedure
 1. **Sweep every child (cheap, two calls, every tick).**
    - Op `sweep` → for each registered child id: running or idle, last activity.
-   - `grep -H -E '^(goals|goal|state|prep|lease|updated|BLOCKED M)' <every child's status path>`
-     → refresh **every** milestone row in REGISTER.md.
+   - `grep -H -E '^(goals|goal|state|prep|lease|updated|ack|BLOCKED M)' <every child's status path>`
+     → refresh **every** milestone row in REGISTER.md and the `acked` column of Messages.
+   - Machine load (`uptime`, or the platform's equivalent) → REGISTER "Heavy slots and load".
 2. **Flag** a child only when something needs the orchestrator **and** it differs from
    that row's `acted` key (goal + state + block/lease id). Equal = already in hand; skip
    unless its timeout below has passed. Milestones in `goals-complete`, `merge-asked`,
    `merged`, `closed` are never flagged as idle, and neither is a child the user chose
    to pause. A new `BLOCKED` is always flagged.
    Flags: idle while active · stuck · plan-review requested · review requested ·
-   review result ready · BLOCKED · lease requested · gate answer arrived ·
-   plan/goal-list mismatch · pending message for an idle child (cli-fallback).
+   review result ready · BLOCKED · lease requested · lease queue head due soon ·
+   gate answer arrived · plan/goal-list mismatch · message unacked for 2 ticks
+   while the child is idle ·
+   pending message for an idle child (cli-fallback) · next-in-merge-order milestone
+   with goals done (not `on-hold`).
 3. **Handle every flagged child, one at a time**, idle/stuck first, then blocked,
    review, lease, gate. Finish one child's decision, message and register update
    before the next. Slow work (review agents) runs in the background — start it,
@@ -62,15 +66,21 @@ If the previous tick is still in progress, skip; the next trigger picks it up.
 |---|---|
 | `plan-review` requested | Run the `principal` role on `<evidence dir>/g<k>-plan.md` (+ layering rules); reply `PLAN-REVIEW M<n>.g<k>: approved \| changes — …`. While goal k is in review, also run it on the child's prep note for g<k+1>, so `NEXT` can say "plan note approved". |
 | `review` requested | Check evidence files first (exist; red fails, green passes, mutation fails; commit on branch). Missing → message the gap, no review. Present → start the review (below), ledger `review: running`. |
-| review result: passed, goal ungated | Ledger → `done`. One message: `REVIEW … passed @<sha>` + `NEXT` (or `DONE` if last goal). |
-| review result: passed, goal gated | Message `REVIEW … passed @<sha>`; child sets `waiting-gate`. Queue the gate question at once. |
+| review result: passed | Pass only if the review rules below are met (fresh full review after behaviour-changing fixes; second reviewer for `[high-risk]`). Else start the missing review. |
+| review passed, goal ungated | Ledger → `done`. One message: `REVIEW … passed @<sha>` + `NEXT` (or the last-goal row). |
+| review passed, goal gated | Message `REVIEW … passed @<sha>`; child sets `waiting-gate`. Queue the gate question at once. |
 | review result: findings | Message `REVIEW … findings`. Third findings round on one goal → the `principal` role decides, still stuck → escalate. |
 | gate answered | Approved → ledger `done`, one message `GATE … approved` + `NEXT` (or `DONE`). Rejected → `GATE … rejected — "<words>"`; the child treats the words as findings and redoes from tests. |
-| `BLOCKED` | **Blocker protocol** (below): only that milestone waits; blocker card to the user right away; banner until fixed; act on the user's answer. |
-| lease requested | Grant if free and next in order; else queue. |
+| `BLOCKED` | **Blocker protocol** (below): only that milestone waits; blocker card to the user right away; banner until fixed; act on the user's answer. Class `access` (a permission check stopped it) → `references/gates.md` §2: nobody does it in the child's place. |
+| lease requested | Grant if free and next in order; else queue with an estimated start. `heavy`: grant while slots used < max and load < the project's limit; over the limit, only milestones on the critical path (the one with most goals left first). |
+| lease queue head due in ≤15 min | `LEASE-SOON <r> est <time>` to it, once. |
 | idle mid-goal | From op `events`: `GUIDE` if it's stuck, else a one-line nudge with the next step. |
 | idle, prep done, waiting | Parked — fine. Move that child's pending question/review to the front. |
-| last goal `done` | Milestone → `goals-complete`; queue the merge question → `merge-asked`; after merge → `merged`, then `closed`. |
+| last goal `done`, milestone next in merge order | Milestone → `goals-complete`. Merge readiness (`references/gates.md` §4): gaps → `MERGE-BASE` / start the merge review / `LEASE` + `CHECK`. Backlog waits until after the merge. |
+| last goal `done`, not next in merge order, approved backlog left | `NEXT` the first backlog goal it can start now (milestone stays `active`); when its turn to merge comes, it finishes the current backlog goal, then readiness. |
+| last goal `done`, not next, no backlog | `DONE` (stand by). Milestone → `goals-complete`; readiness runs when it is next in merge order. |
+| `[irreversible]` goal confirmed | Queue the dry-run approval (the plan's D-step, `references/gates.md` §3). |
+| §4 holds, only the user's yes missing | Milestone → `merge-ready`: banner mention, alert, merge card at the top of the queue behind real blockers (`references/gates.md` §4). After merge → `merged`, `closed` (op `complete`); the next milestone in merge order starts readiness. "hold" → `on-hold`, not flagged again until the user says so. |
 | STATUS `goals:` ≠ PLAN | `PLAN` message. |
 | working normally | Nothing. Don't interrupt. |
 
@@ -87,8 +97,10 @@ of the run keeps going.
 
 **What counts as a blocker:** a `BLOCKED` block in any STATUS; a child that is stuck or
 errored and doesn't recover after one nudge; a goal failing its third review round; a
-`GATE` rejection that changes scope; a failed merge or integration check. Normal waits
-(lease queue, review in progress, gate question pending) are not blockers.
+`GATE` rejection that changes scope; a failed merge or integration check; live prod
+state that differs from what the orchestrator recorded. Normal waits (lease queue,
+review in progress, gate question pending) are not blockers. A merge-ready milestone
+is shown in the banner but queued like a question (`references/gates.md` §4).
 
 1. **Hold only the blocked milestone.** It already waits (`meanwhile: STOPPED` or only
    same-goal steps). Other milestones keep working. If another milestone would build on
@@ -98,6 +110,10 @@ errored and doesn't recover after one nudge; a goal failing its third review rou
 2. **Investigate** with the whole picture: PLAN, contracts, the blocked child's STATUS
    and evidence, recent events, other milestones' state and code, the answers log.
    Ask the `principal` or `review` role if it's hard. Work out real options.
+   **Check the child's diagnosis before building on it.** Read the code or logs it
+   cites, or have a read-only subagent try to disprove it. Behaviour that is on purpose
+   (a comment, a flag, a test that asserts it) is not a bug. The card says
+   `verified by <how>` or `the child's claim, not checked`.
 3. **Show the blocker card right away**, in the user's language and plain words (no
    jargon; explain any unavoidable term in a few words). A blocker card outranks normal
    questions: if a normal question is OPEN, park it (re-ask it after) and show the card.
@@ -126,7 +142,7 @@ errored and doesn't recover after one nudge; a goal failing its third review rou
 - **Banner on every message.** While any blocker is open, every standard message and
   digest starts with this line (never when none is open; quiet event replies use the
   short fixed line in `references/chat-ux.md`):
-  `⛔ Open blockers: <n> — M3.g4: <plain one-liner> (since 14:05) · others running: M1, M2, M4`
+  `⛔ Open blockers: <n> — M3 · #88 Payments · g4: <plain one-liner> (since 14:05) · merge waiting: M2 · others running: M1, M4`
 - **Board.** `BOARD.md` lists open blockers first, then one row per milestone
   `M | goal | state | blocker`, with 🔴 blocked, 🟡 waiting on you, 🟢 working, ✅ done.
   `status` (or `board`, `blockers`) prints it in the chat; it is not repeated in event
@@ -149,9 +165,23 @@ How the options are usually shaped, by blocker class:
 | review | Fix the findings as stated · the `principal` role settles the architecture dispute · split the goal. |
 | frozen-file | Orchestrator edits the frozen file on `<run>-frozen` (pushing it needs the user's yes) then `MERGE-BASE` · work around it inside owned files. |
 | technical | A concrete approach (`GUIDE`) · narrow the goal · spike in a separate goal. |
-| approval / product / access / other | The decision itself, with the orchestrator's recommendation. |
+| access (permission check) | The user does it themselves · the user allows it in that session · a policy-allowed alternative (named) · drop the step. Never "the orchestrator does it instead". |
+| prod state changed | Keep the live state (update the record) · the user says what it should be. Never "put it back" on your own. |
+| approval / product / other | The decision itself, with the orchestrator's recommendation. |
 
 ## Reviews (every goal, holistic)
+**When a goal passes.** Reviews that look only at the delta after fixes keep missing
+problems, so:
+- Round 2+ is a delta review (the delta plus the earlier findings), except the first
+  round whose fixes touch non-test code: that round is a **fresh full review** instead
+  (a new reviewer, no earlier rounds, the whole goal diff). At most one per goal; it
+  counts as a round for the third-round rule.
+- `[high-risk]` goals: round 1 has two independent reviewers, each on the whole diff,
+  neither seeing the other's report; both must pass or their findings merge into one
+  list. Later rounds have one reviewer.
+- Before the merge card, one **merge review** of the whole milestone
+  (`references/gates.md` §4).
+
 Use `references/goal-review-prompt.md` with RUN.md's `review` role: op `subagent`
 in the background on this platform, or a read-only CLI run when `review` names another
 platform (`references/models.md`).
@@ -168,11 +198,16 @@ platform (`references/models.md`).
 ## Messages to children (the only formats the orchestrator sends)
 
 Send with op `message`. For `NEXT`, `GUIDE`, `REVIEW`, `GATE`, `DONE`, ask for an
-idle notice where the adapter supports it. A message usually reaches a child only at
-its next step or turn, so
+idle notice where the adapter supports it. **Number every message** `#<n>` (one counter
+per run) and log it in REGISTER "Messages" with its topic. The child writes `ack: #<n>`
+in STATUS when it reads it. **One open message per topic per child:** don't send a
+second on the same topic until the first is acked; if it must change, send
+`#<n> replaces #<m>: …`. A reply that answers an older number than the latest on that
+topic is stale: don't act on it. A message usually reaches a child only at its next
+step or turn, so
 **bundle**: `MERGE-BASE`, `PLAN` and reviewer notes ride along with the next `NEXT`
-unless they affect the active goal. Unacknowledged after 2 ticks (STATUS not
-reflecting it) → op `events`; still nothing → queue a question (a child may be
+unless they affect the active goal. Unacknowledged after 2 ticks in which the child
+was idle (a busy child acks at its next step) → op `events`; still nothing → queue a question (a child may be
 holding messages for the user's approval, or its CLI session may have failed).
 
 ```
@@ -187,11 +222,14 @@ REVIEW M<n>.g<k>: passed @<sha> | findings — <blockers + should-fixes>
 GATE M<n>.g<k>: approved | rejected — "<user's words>"
 DONE M<n>: all goals confirmed — stand by for merge; no further work
 LEASE <resource>: granted | revoked — stop at the next safe point and mark released
+LEASE-SOON <resource> est <time>: prepare (build, steps) so you can start the moment it's granted
+CHECK M<n> @<sha>: run the real-system check on this exact head (lease granted separately); save merge-check-<sha7>.txt
 MERGE-BASE <repo> <sha>: merge at your next goal boundary, rerun focused tests
 PLAN v<N> M<n>: goals now <id: title list>; changed: <what>
 STATUS? <specific question> — answer in STATUS reply:
 ```
-Combine with ` + ` in one message, e.g. `REVIEW M3.g2: passed @abc123 + NEXT M3.g3: …`.
+Every message starts with `#<n>`; combine parts with ` + `, e.g.
+`#14 REVIEW M3.g2: passed @abc123 + NEXT M3.g3: …`.
 
 ## Leases
 - Child sets STATUS `lease: requested <resource> (<why>, est <min>)`.
@@ -212,3 +250,8 @@ for any goal-list mismatch; note corrections in REGISTER.
   message; echo a child's or reviewer's report into the chat (`references/chat-ux.md`).
 - Message a child that is working normally without a reason from the table.
 - Implement milestone code, run a child's full suite, or merge/deploy without a yes.
+- Change anything in prod without `references/gates.md` §1 (policy, live read, compare,
+  one approved step); run a multi-step prod script.
+- Do an action a permission check stopped in a child, or ask another session to.
+- Decide on a child's diagnosis without checking it.
+- Show a merge card before `references/gates.md` §4 holds.

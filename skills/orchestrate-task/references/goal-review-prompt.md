@@ -24,8 +24,11 @@ Milestone done-definition: <from the brief>
 - This goal's diff: `git -C <worktree> diff <previous confirmed goal sha>..<head>`
   (first goal: the milestone base). Milestone context: `git diff --stat <base>..<head>`.
   Files another milestone changed (arrived via `MERGE-BASE`) are not this goal's.
-- Round <r>: <first review | re-review — previous findings below; review only
-  `git diff <last reviewed sha>..<head>` and whether those findings are fixed>
+- Round <r>: <first review | re-review — previous findings below; review
+  `git diff <last reviewed sha>..<head>` and whether those findings are fixed | fresh
+  full review — you have not seen earlier rounds; review the whole goal diff | merge
+  review — the whole milestone diff `origin/<base>..<head>`, as if seeing it first>
+- Marks: <[irreversible] [high-risk] | none> · background cost line: <from PLAN | none>
 - Evidence: <evidence dir>/g<k>-red.txt, -green.txt, -mutation.txt (+ others)
 
 ## The whole picture
@@ -46,6 +49,13 @@ Milestone done-definition: <from the brief>
 5. **Cross-milestone and integration risk.** Anything that will conflict or behave
    differently once other milestones merge; anything the final integration check must
    cover because of this goal.
+5b. **Real behaviour and cost.** Do the fakes match the contract's real sample, and
+   would this pass against the real system? New or changed background work (calls,
+   polling, prefetch, re-downloads): how often, and does it match the plan's line?
+   `[irreversible]`: every item of the checklist in `<SKILL_DIR>/references/gates.md`
+   §3 answered and tested: selection can't over-match (sample saved), dry run by
+   default, empty result fails loudly, prod interlock, bounded/resumable/idempotent,
+   undo, cost.
 6. **Milestone trajectory.** Does this goal leave the next goals in a good position?
    Anything the orchestrator should tell the child in its next `NEXT`?
 

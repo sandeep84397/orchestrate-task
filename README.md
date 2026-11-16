@@ -49,7 +49,28 @@ Children report all the time, but you only watch the orchestrator. So the chat s
   in the chat.
 
 `BOARD.md` in the run folder always shows the full picture; `status` prints it.
-`quiet`, `normal` and `verbose` change how much reaches the chat.
+`quiet`, `normal` and `verbose` change how much reaches the chat. Every line names its
+milestone and goal, and every message ends with the question waiting for you, so it
+isn't lost on a phone.
+
+## Safety gates
+
+Lessons from real runs, enforced on every run (`references/gates.md`):
+
+- **Production:** the project's deploy policy is read first; live state is read before
+  every change, and a state the orchestrator didn't set is never overridden; one
+  approved step at a time.
+- **Permission checks:** if one stops an action, nobody does it another way or in
+  another session; it becomes a question for you.
+- **Irreversible work** (backfills, migrations, deletes) answers a checklist before any
+  code: dry run by default, empty results fail, prod interlock, bounded, undo plan.
+- **Merges:** shown only when the head contains the latest base, CI is green, a fresh
+  merge review passed, and the real-system check passed on that exact head. A
+  milestone waiting only for your merge stays in the blocker banner, with alerts,
+  until merged.
+- **Plans** check contracts against real responses, walk product rules through every
+  user state, and note background cost. Finished milestones pick up approved backlog
+  goals instead of sitting idle; heavy jobs share a load budget.
 
 ## Commands
 
@@ -120,6 +141,8 @@ Models are never stored there.
 - [references/models.md](skills/orchestrate-task/references/models.md): discovery, roles, `models` commands
 - [references/pull-loop.md](skills/orchestrate-task/references/pull-loop.md): manager loop
 - [references/chat-ux.md](skills/orchestrate-task/references/chat-ux.md): what reaches the chat — lanes, cards, digest, board
+- [references/gates.md](skills/orchestrate-task/references/gates.md): production, permissions, irreversible work, merge readiness
+- [references/writing.md](skills/orchestrate-task/references/writing.md): how messages, cards and reports are written
 - [references/](skills/orchestrate-task/references): plan prompt and template, child brief, status/register formats, goal review prompt
 - [tests/regression-scenarios.md](skills/orchestrate-task/tests/regression-scenarios.md): replay checklist
 

@@ -31,12 +31,20 @@ choices in its own RUN.md (`references/models.md`). Optional preference only:
 ## Frozen-by-default hotspots
 - <build files, nav graph, shared strings, DB schema, DI root, API spec, infra, CI>
 
+## Deploy and prod policy (required before any run)
+- allowed deploy path: <e.g. "Cloud Build from main only"; nothing else deploys>
+- who runs it: <orchestrator after the user's yes | the user only>
+- forbidden: <e.g. deploys from a dev machine, temp/test versions in prod, direct DB edits>
+- read live state: <commands that print traffic split, serving versions, flags>
+- prod data scripts: <allowed? who runs them? test account rules>
+
 ## Shared resources (leases)
-- devices: <name/serial, allowed ops, never-touch devices>
-- heavy runs: <one at a time? disk limits?>
-- deploys: <who deploys, how, environments>
+- devices: <name/serial, allowed ops, never-touch devices, baseline to restore after each use>
+- heavy slots: <max builds/emulators/suites at once, default 2> · load limit: <e.g. load average 1.5 × cores>
+- deploys: <deploy slots, environments>
 
 ## Gates
+- merge gate (required): contains base + CI green + merge review + real-system check on the exact head · real-system check: <how, what counts> | none — <reason>
 - merges need: <user yes>
 - deploys need: <user yes>
 - standing grants (if any): <e.g. children may push own feature/* + draft PRs>

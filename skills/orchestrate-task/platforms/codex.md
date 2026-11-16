@@ -22,9 +22,9 @@ calls a visible task a *thread*.
 | events | `read_thread` with small bounds. |
 | restart child | First try `send_message_to_thread` on the old thread with the restart prompt. Only if it is dead and confirmed idle (there may be no stop tool): a new thread in local mode on the existing worktree (a new worktree can't check out a branch already checked out). |
 | change child model | `send_message_to_thread` with `model`/`thinking`. |
-| subagent | `spawn_agent` (`agent_type`, `model`, `reasoning_effort`, `task_name`), then `wait_agent` / `close_agent`. Codex's own prompt says not to set a model unless asked; this skill asks, so pass RUN.md's choice. Stay within `[agents] max_threads` (newer builds: `max_concurrent_threads_per_session`). |
+| subagent | `spawn_agent` (`agent_type`, `model`, `reasoning_effort`, `task_name`), then `wait_agent` for a mailbox update; consume the delivered final answer or message and save the report. Use `list_agents` to inspect status, `send_message` for a running agent, or `followup_task` to continue an idle agent when needed. `interrupt_agent` stops an active turn only when needed, never for normal completion. Codex's own prompt says not to set a model unless asked; this skill asks, so pass RUN.md's choice. Stay within `[agents] max_threads` (newer builds: `max_concurrent_threads_per_session`). |
 | heartbeat | `automation_update`: one heartbeat per run, pointing at the lead thread and the register path; interval from RUN.md (the minimum allowed if 5m isn't). Reconcile an existing automation id first; remove it at close-out. Never promise a wake-up before creation succeeds. |
-| complete | `set_thread_archived` (stable id + host id). Archiving does not stop a thread or merge its work. |
+| complete | Record child completion in `REGISTER.md` and `BOARD.md`; leave the thread available. Archive separately, only after the user's yes, with `set_thread_archived` (stable id + host id). Archiving does not stop a thread or merge its work. |
 | ask user | Plain text in the lead thread. |
 
 ## Model discovery

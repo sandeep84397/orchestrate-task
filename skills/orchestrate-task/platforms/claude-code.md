@@ -24,7 +24,7 @@ Some tools are deferred: load them with ToolSearch (`select:<name>`) before firs
 | subagent | Agent tool: `subagent_type` (`Plan` for planning, `general-purpose` for reviews, the persona type for `principal`), `model` + `effort` from RUN.md, `run_in_background: true` for reviews. |
 | heartbeat | `loop` skill: `<interval> <tick prompt>` (SKILL.md, Setup). Stop by ending the loop. |
 | complete | `mcp__ccd_sidebar__mark_completed`; archive (`mcp__ccd_session_mgmt__archive_session`) only on the user's yes. |
-| ask user | Plain text, as a card (`references/chat-ux.md`); the text card is the source of truth. Optional mirror on turns that show a card and already call `mcp__ccd_turn__wrap_up`: `ask` = the card's headline (≤100 chars), `actions` = the recommended reply first (e.g. "ok, merge M2") and one alternative ("Hold"), `recap` = 2–3 plain sentences (where the run stands). Never on quiet event turns. |
+| ask user | Plain text, as a card (`references/chat-ux.md`); the text card is the source of truth. Optional mirror on turns that show a card and already call `mcp__ccd_turn__wrap_up`: `ask` = the card's headline (≤100 chars), `actions` = the recommended reply first (e.g. "ok, merge M2") and one alternative ("Hold"), `recap` = 2–3 plain sentences (where the run stands). Never on quiet event turns. The box may not show over Remote Control, so the text card and its last-line ask always carry the question. |
 
 ## Async arrivals (keep the chat quiet)
 The app relays each child's turn end (`<side-sessions-event>`, first 400 chars) and any

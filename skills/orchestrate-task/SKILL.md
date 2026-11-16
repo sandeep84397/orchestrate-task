@@ -95,6 +95,19 @@ on Resume.
    as one card per message; news goes to `FEED.md` and a periodic digest; bookkeeping
    stays in files. An async event that needs nothing from the user gets no visible
    reply (at most one fixed line). `BOARD.md` always holds the full picture.
+10. **Production and irreversible work follow `references/gates.md`.** Read the deploy
+    policy and the live state before every prod change; never override a state you
+    didn't set; one approved step at a time. Irreversible goals answer the checklist
+    before any code. A merge card appears only when the head contains the latest base,
+    CI is green, the merge review passed, and (if the project's merge gate asks) the
+    real-system check passed on that head.
+    A milestone waiting only for the user's merge stays in the blocker banner, with
+    alerts, until merged; its card is next in the queue behind real blockers.
+11. **A permission check is an answer.** When one stops an action in any session,
+    nobody does it another way or in that session's place; it becomes a blocker card
+    (`references/gates.md` §2).
+12. **Write for the reader** (`references/writing.md`): answer first, the milestone and
+    goal named, plain whole sentences, what isn't verified said, the ask last.
 
 ## Token discipline
 
@@ -112,13 +125,15 @@ on Resume.
 2. **Project.** Identify it from repo/remote names in the argument or the working dir.
    Load `~/.config/orchestrate-task/projects/<project>.md`; if missing, create it from
    `references/project-config-template.md`, filling what the repos show and asking the
-   rest one question at a time.
+   rest one question at a time. Its **deploy and prod policy** must be filled and
+   confirmed by the user before planning; it goes into the plan prompt and every brief.
 3. **Run folder** (op `run folder`); write-test it. Where children keep STATUS in their
    worktree (`.orchestrate/`), exclude that folder once per repo:
    `echo .orchestrate/ >> "$(git -C <repo> rev-parse --git-common-dir)/info/exclude"`. Layout:
    ```
    RUN.md  PLAN.md  REGISTER.md  QUESTIONS.md  BLOCKERS.md  BOARD.md  FEED.md
    reviews/                    (goal review reports)
+   prod/                       (live-state reads before and after every prod step)
    milestones/M<n>/            (STATUS.md + evidence/ on claude-code)
    logs/  pids/  msgs/         (cli-fallback; msgs/ also holds prompt files)
    ```
@@ -150,7 +165,9 @@ states and ownership paths, plus a sample of cited `file:line` claims. Mark clai
 hotspots someone "owns"; check that no goal needs another milestone's code to go green.
 
 Write `PLAN.md`, seed `QUESTIONS.md` from the plan's open questions, then ask "Approve
-plan v1?" with a short summary and the ASSUMED list. Iterate until approved.
+plan v1?" with a short summary, the ASSUMED list, the product-rule gaps, the D-steps
+(deploys, irreversible runs) and each milestone's backlog. Approving the plan approves
+the backlog; anything the user strikes is dropped. Iterate until approved.
 
 ## Phase 3 — Setup
 
@@ -184,7 +201,9 @@ plan v1?" with a short summary and the ASSUMED list. Iterate until approved.
    > `<SKILL_DIR>/references/chat-ux.md`. All output follows that file: sort every event
    > into Now / Digest / Silent; one card per message; an event that needs nothing from
    > the user gets no visible reply; never a per-milestone report. While any blocker is
-   > open, the blocker banner leads every standard message.
+   > open, the blocker banner leads every standard message. Prod changes, permission
+   > blocks, irreversible goals and merges → `<SKILL_DIR>/references/gates.md`. Text for
+   > the user → `<SKILL_DIR>/references/writing.md`.
 
 ## Phase 4 — Manager loop
 
@@ -201,13 +220,19 @@ of every tick rather than working from memory.
 
 - **Leases** (devices/emulators, heavy test runs, deploy slots) are serialized; order
   from the plan, else FIFO. Grant only after the previous holder's STATUS shows
-  `released` or its session is dead.
+  `released` (device restored to its baseline) or its session is dead. Warn the next
+  holder with `LEASE-SOON` so its build is ready.
+- **Heavy jobs** (builds, emulators, suites) share the project's `heavy` slots. Over
+  the load limit, only the critical-path milestone gets a slot.
 - **Reviews.** Every goal completion gets a holistic review by RUN.md's `review` role,
   read-only, using `references/goal-review-prompt.md`. The reviewer sees the diff, the
   evidence, the plan and the other milestones' state, not your conclusion. No goal is
   confirmed done without `REVIEW … passed`.
 - **Merges and deploys:** asked one at a time; executed by the orchestrator after the
-  user's yes; merge order from the plan.
+  user's yes; merge order from the plan; readiness and prod rules in
+  `references/gates.md`.
+- **Idle milestones:** a milestone whose goals are done takes its approved backlog
+  goals next; with none left it goes to merge readiness.
 - **Frozen-file edits:** the orchestrator commits them on a `<run>-frozen` branch;
   pushing to a shared base needs the user's yes. Affected children `git merge <sha>` at
   their next goal boundary (never rebase or force-push) and rerun focused tests.
@@ -224,8 +249,9 @@ milestone, not a hotfix here.
 ## Phase 6 — Close-out
 
 Board to Done; op `complete` for each child; stop the heartbeat; final summary in
-`REGISTER.md` (merged SHAs, evidence paths, deferred follow-ups); offer archiving the
-children, only on the user's yes.
+`REGISTER.md` (merged SHAs, evidence paths, deferred follow-ups). Offer archiving the
+children as a separate question. Archive only after the user's yes, using the active
+adapter's archive action where available; completion alone never authorizes archiving.
 
 ## Resume (orchestrator restarted, context lost, or a new chat)
 
@@ -246,5 +272,7 @@ children, only on the user's yes.
 - `references/status-and-register.md` — STATUS / REGISTER / QUESTIONS formats, progress.
 - `references/pull-loop.md` — manager loop: sweep, decisions, messages, blockers.
 - `references/chat-ux.md` — what reaches the chat: lanes, cards, digest, board, copy rules.
+- `references/gates.md` — prod changes, permission checks, irreversible goals, merge readiness.
+- `references/writing.md` — how every message, card and report is written.
 - `references/goal-review-prompt.md` — holistic review at every goal completion.
 - `references/project-config-template.md` — per-project config (kept outside the skill).
